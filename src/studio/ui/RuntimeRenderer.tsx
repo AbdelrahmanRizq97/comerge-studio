@@ -1,0 +1,40 @@
+import * as React from 'react';
+import { View, type ViewStyle } from 'react-native';
+
+import { ComergeRuntimeRenderer } from '@comerge/runtime';
+
+import { Text } from '../../components/primitives/Text';
+
+export type RuntimeRendererProps = {
+  appKey: string;
+  bundlePath: string | null;
+  /**
+   * Used to force a runtime remount even when bundlePath stays constant
+   * (e.g. base bundle replaced in-place).
+   */
+  renderToken?: number;
+  style?: ViewStyle;
+};
+
+export function RuntimeRenderer({ appKey, bundlePath, renderToken, style }: RuntimeRendererProps) {
+  if (!bundlePath) {
+    return (
+      <View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }, style]}>
+        <Text variant="bodyMuted">Preparing app…</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[{ flex: 1 }, style]}>
+      <ComergeRuntimeRenderer
+        key={`${appKey}:${bundlePath}:${renderToken ?? 0}`}
+        appKey={appKey}
+        bundlePath={bundlePath}
+        style={{ flex: 1 }}
+      />
+    </View>
+  );
+}
+
+

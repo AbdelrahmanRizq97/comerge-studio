@@ -1,0 +1,38 @@
+{
+  "name": "@comerge/studio",
+  "version": "0.1.0",
+  "description": "Comerge studio",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@comerge/runtime": "file:../comerge-runtime",
+    "axios": "^1.13.1",
+    "react-native-markdown-display": "^7.0.2",
+    "react-native-logs": "^5.5.0"
+  },
+  "peerDependencies": {
+    "@callstack/liquid-glass": "*",
+    "@supabase/supabase-js": "*",
+    "@gorhom/bottom-sheet": "*",
+    "expo": "*",
+    "expo-file-system": "*",
+    "expo-haptics": "*",
+    "expo-linear-gradient": "*",
+    "lucide-react-native": "*",
+    "react": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "*",
+    "react-native-svg": "*",
+    "react-native-view-shot": "*"
+  },
+  "peerDependenciesMeta": {}
+}
+
+

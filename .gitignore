@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.astro/
+coverage/
+
+# TypeScript / tooling caches
+*.tsbuildinfo
+.turbo/
+.parcel-cache/
+.vite/
+.cache/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Editor/IDE
+.vscode/
+.idea/
+*.iml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Misc
+*.swp
+*.swo
+*.orig
+
+

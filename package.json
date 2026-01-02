@@ -38,7 +38,6 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@comergehq/runtime": "^0.1.1",
     "axios": "^1.13.1",
     "react-native-markdown-display": "^7.0.2",
     "react-native-logs": "^5.5.0"
@@ -52,6 +51,7 @@
     "@callstack/liquid-glass": "*",
     "@supabase/supabase-js": "*",
     "@gorhom/bottom-sheet": "*",
+    "@comergehq/runtime": "^0.1.1",
     "expo": "*",
     "expo-file-system": "*",
     "expo-haptics": "*",

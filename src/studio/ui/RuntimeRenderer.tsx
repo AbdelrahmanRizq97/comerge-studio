@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { View, type ViewStyle } from 'react-native';
 
-import { ComergeRuntimeRenderer } from '@comerge/runtime';
+import { ComergeRuntimeRenderer } from '@comergehq/runtime';
 
 import { Text } from '../../components/primitives/Text';
 

@@ -28,8 +28,6 @@
       "react-native-view-shot/*": ["../bld-playground-expo/node_modules/react-native-view-shot/*"],
       "@gorhom/bottom-sheet": ["../bld-playground-expo/node_modules/@gorhom/bottom-sheet"],
       "@gorhom/bottom-sheet/*": ["../bld-playground-expo/node_modules/@gorhom/bottom-sheet/*"],
-      "@comerge/runtime": ["../bld-playground-expo/node_modules/@comerge/runtime"],
-      "@comerge/runtime/*": ["../bld-playground-expo/node_modules/@comerge/runtime/*"],
       "expo-file-system": ["../bld-playground-expo/node_modules/expo-file-system"],
       "expo-file-system/*": ["../bld-playground-expo/node_modules/expo-file-system/*"],
       "@supabase/supabase-js": ["../bld-playground-expo/node_modules/@supabase/supabase-js"],

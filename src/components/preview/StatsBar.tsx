@@ -5,7 +5,7 @@ import { Heart, MessageCircle } from 'lucide-react-native';
 
 import { useTheme } from '../../theme';
 import { Text } from '../primitives/Text';
-import MergeSvg from '../../assets/images/merge.svg';
+import { MergeIcon } from '../icons/MergeIcon';
 
 export type StatsBarProps = {
   likeCount: number;
@@ -93,7 +93,7 @@ export function StatsBar({
 
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8 }}>
             <View style={{ transform: [{ scaleY: -1 }] }}>
-              <MergeSvg width={14} height={14} color="#FFFFFF" />
+              <MergeIcon width={14} height={14} color="#FFFFFF" />
             </View>
             <View style={{ width: 4 }} />
             <Text variant="caption" style={{ color: '#FFFFFF', fontWeight: theme.typography.fontWeight.bold }}>

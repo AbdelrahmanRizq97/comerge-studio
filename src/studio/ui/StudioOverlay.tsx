@@ -15,7 +15,7 @@ import { ConfirmMergeFlow } from './ConfirmMergeFlow';
 import type { MergeRequestSummary } from '../../components/models/types';
 import { useTheme } from '../../theme';
 
-import MergeSvg from '../../assets/images/merge.svg';
+import { MergeIcon } from '../../components/icons/MergeIcon';
 
 export type StudioOverlayProps = {
   captureTargetRef: React.RefObject<View | null>;
@@ -222,7 +222,7 @@ export function StudioOverlay({
         isLoading={app?.status === 'editing'}
       >
         <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-          <MergeSvg width={24} height={24} color={theme.colors.floatingContent} />
+          <MergeIcon width={24} height={24} color={theme.colors.floatingContent} />
         </View>
       </FloatingDraggableButton>
 

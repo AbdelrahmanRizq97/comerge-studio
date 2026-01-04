@@ -12,7 +12,7 @@ import { useTheme } from '../../../theme';
 import { PressableCardRow } from './PressableCardRow';
 import { SectionTitle } from './SectionTitle';
 
-import MergeSvg from '../../../assets/images/merge.svg';
+import { MergeIcon } from '../../../components/icons/MergeIcon';
 
 export type PreviewCollaborateSectionProps = {
   canSubmitMergeRequest: boolean;
@@ -114,7 +114,7 @@ export function PreviewCollaborateSection({
                 marginRight: theme.spacing.lg,
               }}
             >
-              {submittingMr ? <ActivityIndicator color="#03DAC6" size="small" /> : <MergeSvg width={20} height={20} color="#03DAC6" />}
+              {submittingMr ? <ActivityIndicator color="#03DAC6" size="small" /> : <MergeIcon width={20} height={20} color="#03DAC6" />}
             </View>
           }
           title={

@@ -15,23 +15,16 @@ import { RuntimeRenderer } from './ui/RuntimeRenderer';
 import { StudioOverlay } from './ui/StudioOverlay';
 
 export type ComergeStudioProps = {
-  /**
-   * App to open in the runtime and studio.
-   */
   appId: string;
-  /**
-   * App root key exposed by the bundle (defaults to MicroMain).
-   */
+  apiKey: string;
   appKey?: string;
-  /**
-   * Optional callback for a “home” button.
-   */
   onNavigateHome?: () => void;
   style?: ViewStyle;
 };
 
 export function ComergeStudio({
   appId,
+  apiKey,
   appKey = 'MicroMain',
   onNavigateHome,
   style,
@@ -50,7 +43,7 @@ export function ComergeStudio({
   const captureTargetRef = React.useRef<View | null>(null);
 
   return (
-    <StudioBootstrap>
+    <StudioBootstrap apiKey={apiKey}>
       {({ userId }) => (
         <BottomSheetModalProvider>
           <ComergeStudioInner

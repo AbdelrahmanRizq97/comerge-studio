@@ -1,10 +1,13 @@
 import * as React from 'react';
 
+import { setClientApiKey } from '../../core/services/http/public';
 import { ensureAuthenticatedSession, ensureAnonymousSession } from '../../core/services/supabase/auth';
 import { isSupabaseClientInjected, setSupabaseConfig } from '../../core/services/supabase/client';
 import { studioConfigRepository } from '../../data/public/studio-config/repository';
 
-export type UseStudioBootstrapOptions = {};
+export type UseStudioBootstrapOptions = {
+  apiKey: string;
+};
 
 export type StudioBootstrapState = {
   ready: boolean;
@@ -12,7 +15,7 @@ export type StudioBootstrapState = {
   error: Error | null;
 };
 
-export function useStudioBootstrap(options?: UseStudioBootstrapOptions): StudioBootstrapState {
+export function useStudioBootstrap(options: UseStudioBootstrapOptions): StudioBootstrapState {
   const [state, setState] = React.useState<StudioBootstrapState>({
     ready: false,
     userId: null,
@@ -24,6 +27,7 @@ export function useStudioBootstrap(options?: UseStudioBootstrapOptions): StudioB
 
     (async () => {
       try {
+        setClientApiKey(options.apiKey);
         const requireAuth = isSupabaseClientInjected();
         if (!requireAuth) {
           const cfg = await studioConfigRepository.get();
@@ -43,7 +47,7 @@ export function useStudioBootstrap(options?: UseStudioBootstrapOptions): StudioB
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [options.apiKey]);
 
   return state;
 }

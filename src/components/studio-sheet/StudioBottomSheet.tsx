@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View } from 'react-native';
+import { Keyboard, Platform, View } from 'react-native';
 import BottomSheet, { type BottomSheetBackgroundProps, type BottomSheetProps } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -70,6 +70,17 @@ export function StudioBottomSheet({
   // Gorhom BottomSheet `index` is not reliably "fully controlled" across versions.
   // Ensure the visual sheet actually opens/closes when `open` changes (e.g. via header X button).
   React.useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const sub = Keyboard.addListener('keyboardDidHide', () => {
+      const sheet = resolvedSheetRef.current;
+      if (!sheet || !open) return;
+      const targetIndex = snapPoints.length - 1;
+      setTimeout(() => sheet.snapToIndex(targetIndex), 10);
+    });
+    return () => sub.remove();
+  }, [open, resolvedSheetRef, snapPoints.length]);
+
+  React.useEffect(() => {
     const sheet = resolvedSheetRef.current;
     if (!sheet) return;
 
@@ -94,14 +105,14 @@ export function StudioBottomSheet({
       index={open ? snapPoints.length - 1 : -1}
       snapPoints={snapPoints}
       enablePanDownToClose
-      keyboardBehavior="extend"
+      keyboardBehavior={Platform.OS === 'ios' ? 'interactive' : 'extend'}
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
       backgroundComponent={(props: BottomSheetBackgroundProps) => (
         <StudioSheetBackground {...props} renderBackground={background?.renderBackground} />
       )}
       topInset={insets.top}
-      bottomInset={insets.bottom}
+      bottomInset={0}
       handleIndicatorStyle={{ backgroundColor: theme.colors.handleIndicator }}
       onChange={handleChange}
       {...bottomSheetProps}

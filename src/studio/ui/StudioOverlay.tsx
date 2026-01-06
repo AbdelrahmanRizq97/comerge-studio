@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Keyboard, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, View, useWindowDimensions } from 'react-native';
 
 import type { App } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
@@ -117,8 +117,24 @@ export function StudioOverlay({
   }, [openSheet]);
 
   const backToPreview = React.useCallback(() => {
+    if (Platform.OS !== 'ios') {
+      Keyboard.dismiss();
+      setActivePage('preview');
+      return;
+    }
+
+    let done = false;
+    const finalize = () => {
+      if (done) return;
+      done = true;
+      sub.remove();
+      clearTimeout(t);
+      setActivePage('preview');
+    };
+
+    const sub = Keyboard.addListener('keyboardDidHide', finalize);
+    const t = setTimeout(finalize, 350);
     Keyboard.dismiss();
-    setActivePage('preview');
   }, []);
 
   const startDraw = React.useCallback(() => {

@@ -67,8 +67,6 @@ export function StudioBottomSheet({
   const internalSheetRef = React.useRef<BottomSheet | null>(null);
   const resolvedSheetRef = sheetRef ?? internalSheetRef;
 
-  // Gorhom BottomSheet `index` is not reliably "fully controlled" across versions.
-  // Ensure the visual sheet actually opens/closes when `open` changes (e.g. via header X button).
   React.useEffect(() => {
     if (Platform.OS !== 'ios') return;
     const sub = Keyboard.addListener('keyboardDidHide', () => {
@@ -105,7 +103,7 @@ export function StudioBottomSheet({
       index={open ? snapPoints.length - 1 : -1}
       snapPoints={snapPoints}
       enablePanDownToClose
-      keyboardBehavior={Platform.OS === 'ios' ? 'interactive' : 'extend'}
+      keyboardBehavior="extend"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
       backgroundComponent={(props: BottomSheetBackgroundProps) => (

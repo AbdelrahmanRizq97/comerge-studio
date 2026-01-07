@@ -16,6 +16,7 @@ export type ChatMessageListProps = {
   showTypingIndicator?: boolean;
   renderMessageContent?: ChatMessageBubbleProps['renderContent'];
   contentStyle?: ViewStyle;
+  bottomInset?: number;
   /**
    * Called when the user is near the bottom of the list.
    */
@@ -33,6 +34,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       showTypingIndicator = false,
       renderMessageContent,
       contentStyle,
+      bottomInset = 0,
       onNearBottomChange,
       nearBottomThreshold = 200,
     },
@@ -55,7 +57,12 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
     const handleScroll = React.useCallback(
       (e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-        const distanceFromBottom = Math.max(contentSize.height - (contentOffset.y + layoutMeasurement.height), 0);
+        // Treat "bottom" as the end of actual messages (excluding the intentional footer spacer),
+        // so "near bottom" still means "near the latest message", not "deep into empty space".
+        const distanceFromBottom = Math.max(
+          contentSize.height - Math.max(bottomInset, 0) - (contentOffset.y + layoutMeasurement.height),
+          0
+        );
         const isNear = distanceFromBottom <= nearBottomThreshold;
 
         if (nearBottomRef.current !== isNear) {
@@ -63,7 +70,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
           onNearBottomChange?.(isNear);
         }
       },
-      [nearBottomThreshold, onNearBottomChange]
+      [bottomInset, nearBottomThreshold, onNearBottomChange]
     );
 
     // On first load, start at the bottom
@@ -99,6 +106,14 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       return undefined;
     }, [showTypingIndicator, scrollToBottom]);
 
+    // When the bottom inset grows/shrinks (e.g. composer height changes), keep pinned users at bottom.
+    React.useEffect(() => {
+      if (!initialScrollDoneRef.current) return;
+      if (!nearBottomRef.current) return;
+      const id = requestAnimationFrame(() => scrollToBottom({ animated: false }));
+      return () => cancelAnimationFrame(id);
+    }, [bottomInset, scrollToBottom]);
+
     return (
       <BottomSheetFlatList
         ref={listRef}
@@ -111,7 +126,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
           {
             paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.sm,
-            paddingBottom: theme.spacing.xl,
+            paddingBottom: theme.spacing.sm,
           },
           contentStyle,
         ]}
@@ -121,13 +136,15 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
           </View>
         )}
         ListFooterComponent={
-          showTypingIndicator ? (
-            <View style={{ marginTop: theme.spacing.sm, alignSelf: 'flex-start', paddingHorizontal: theme.spacing.lg }}>
-              <TypingIndicator />
-            </View>
-          ) : null
+          <View>
+            {showTypingIndicator ? (
+              <View style={{ marginTop: theme.spacing.sm, alignSelf: 'flex-start', paddingHorizontal: theme.spacing.lg }}>
+                <TypingIndicator />
+              </View>
+            ) : null}
+            {bottomInset > 0 ? <View style={{ height: bottomInset }} /> : null}
+          </View>
         }
-        maintainVisibleContentPosition={{ minIndexForVisible: 0, autoscrollToTopThreshold: nearBottomThreshold }}
       />
     );
   }

@@ -21,6 +21,7 @@ export type ChatComposerProps = {
   onChangeValue?: (text: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  sendDisabled?: boolean;
   sending?: boolean;
   autoFocus?: boolean;
   onSend: (text: string, attachments?: string[]) => void | Promise<void>;
@@ -90,6 +91,7 @@ export function ChatComposer({
   onChangeValue,
   placeholder = 'Describe the idea you want to build',
   disabled = false,
+  sendDisabled = false,
   sending = false,
   autoFocus = false,
   onSend,
@@ -111,7 +113,7 @@ export function ChatComposer({
   const hasText = text.trim().length > 0;
   const composerMinHeight = hasAttachments ? THUMBNAIL_HEIGHT + 44 + 24 : 44;
 
-  const isButtonDisabled = sending || disabled;
+  const isButtonDisabled = sending || disabled || sendDisabled;
   const maxInputHeight = React.useMemo(() => Dimensions.get('window').height * 0.5, []);
   const shakeAnim = React.useRef(new Animated.Value(0)).current;
   const [sendPressed, setSendPressed] = React.useState(false);

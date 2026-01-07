@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import type { App } from '../../data/apps/types';
 import { appsRepository } from '../../data/apps/repository';
+import { useForegroundSignal } from './useForegroundSignal';
 
 export type UseAppResult = {
   app: App | null;
@@ -23,6 +24,7 @@ export function useApp(appId: string, options?: UseAppOptions): UseAppResult {
   const [app, setApp] = React.useState<App | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
+  const foregroundSignal = useForegroundSignal(enabled && Boolean(appId));
 
   const mergeApp = React.useCallback((prev: App | null, next: App): App => {
     // Realtime (Supabase) rows don't include "viewer-specific" fields like `isLiked`,
@@ -62,20 +64,24 @@ export function useApp(appId: string, options?: UseAppOptions): UseAppResult {
     if (!appId) return;
     const unsubscribe = appsRepository.subscribeApp(appId, {
       onInsert: (a) => {
-        console.log('[useApp] onInsert', a);
         setApp((prev) => mergeApp(prev, a));
       },
       onUpdate: (a) => {
-        console.log('[useApp] onUpdate', a);
         setApp((prev) => mergeApp(prev, a));
       },
       onDelete: () => {
-        console.log('[useApp] onDelete');
         setApp(null);
       },
     });
     return unsubscribe;
-  }, [appId, enabled, mergeApp]);
+  }, [appId, enabled, mergeApp, foregroundSignal]);
+
+  React.useEffect(() => {                                   
+    if (!enabled) return;
+    if (!appId) return;
+    if (foregroundSignal <= 0) return;
+    void fetchOnce();
+  }, [appId, enabled, fetchOnce, foregroundSignal]);
 
   return { app, loading, error, refetch: fetchOnce };
 }

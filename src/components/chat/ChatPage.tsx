@@ -61,6 +61,7 @@ export function ChatPage({
     return { paddingBottom: animatedKeyboard.height.value > 0 ? 0 : insets.bottom };
   });
   const overlayBottom = composerHeight + footerBottomPadding + theme.spacing.lg;
+  const bottomInset = composerHeight + footerBottomPadding + theme.spacing.xl;
 
   const resolvedOverlay = React.useMemo(() => {
     if (!overlay) return null;
@@ -85,7 +86,7 @@ export function ChatPage({
           showTypingIndicator={showTypingIndicator}
           renderMessageContent={renderMessageContent}
           onNearBottomChange={onNearBottomChange}
-          contentStyle={{ paddingBottom: theme.spacing.xl + composerHeight + footerBottomPadding }}
+          bottomInset={bottomInset}
         />
         {resolvedOverlay}
 

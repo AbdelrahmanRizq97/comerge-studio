@@ -30,10 +30,14 @@ export function AppCommentsSheet({ appId, onClose, onCountChange, onPlayApp }: A
   const insets = useSafeAreaInsets();
   const sheetRef = React.useRef<BottomSheetModal | null>(null);
   const snapPoints = React.useMemo(() => ['50%', '90%'], []);
+  const currentIndexRef = React.useRef<number>(1);
 
   const { comments, loading, sending, error, create, refresh } = useAppComments(appId);
   const { app, loading: loadingApp } = useAppDetails(appId);
-  const { keyboardVisible } = useIosKeyboardSnapFix(sheetRef);
+  const { keyboardVisible } = useIosKeyboardSnapFix(sheetRef, {
+    getCurrentIndex: () => currentIndexRef.current,
+    targetIndex: 1,
+  });
 
   React.useEffect(() => {
     if (appId) {
@@ -56,6 +60,7 @@ export function AppCommentsSheet({ appId, onClose, onCountChange, onPlayApp }: A
 
   const handleChange = React.useCallback(
     (index: number) => {
+      currentIndexRef.current = index;
       if (index === -1) onClose();
     },
     [onClose]

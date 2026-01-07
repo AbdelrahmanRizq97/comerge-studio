@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Keyboard, Platform, View } from 'react-native';
+import { AppState, Keyboard, Platform, View, type AppStateStatus } from 'react-native';
 import BottomSheet, { type BottomSheetBackgroundProps, type BottomSheetProps } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -66,6 +66,32 @@ export function StudioBottomSheet({
   const insets = useSafeAreaInsets();
   const internalSheetRef = React.useRef<BottomSheet | null>(null);
   const resolvedSheetRef = sheetRef ?? internalSheetRef;
+  const currentIndexRef = React.useRef<number>(open ? snapPoints.length - 1 : -1);
+  const lastAppStateRef = React.useRef<AppStateStatus>(AppState.currentState);
+
+  // Workaround: @gorhom/bottom-sheet can occasionally render empty content after app resume.
+  React.useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      const prev = lastAppStateRef.current;
+      lastAppStateRef.current = state;
+
+      if (state === 'background' || state === 'inactive') {
+        Keyboard.dismiss();
+        return;
+      }
+
+      if (state !== 'active') return;
+      const sheet = resolvedSheetRef.current;
+      if (!sheet) return;
+      const idx = currentIndexRef.current;
+      if (open && idx >= 0) {
+        Keyboard.dismiss();
+        requestAnimationFrame(() => sheet.snapToIndex(idx));
+        setTimeout(() => sheet.snapToIndex(idx), 120);
+      }
+    });
+    return () => sub.remove();
+  }, [open, resolvedSheetRef]);
 
   React.useEffect(() => {
     if (Platform.OS !== 'ios') return;
@@ -73,7 +99,10 @@ export function StudioBottomSheet({
       const sheet = resolvedSheetRef.current;
       if (!sheet || !open) return;
       const targetIndex = snapPoints.length - 1;
-      setTimeout(() => sheet.snapToIndex(targetIndex), 10);
+      // Only "re-snap" if we're already at the highest snap point.
+      if (currentIndexRef.current === targetIndex) {
+        setTimeout(() => sheet.snapToIndex(targetIndex), 10);
+      }
     });
     return () => sub.remove();
   }, [open, resolvedSheetRef, snapPoints.length]);
@@ -92,6 +121,7 @@ export function StudioBottomSheet({
 
   const handleChange = React.useCallback(
     (index: number) => {
+      currentIndexRef.current = index;
       onOpenChange?.(index >= 0);
     },
     [onOpenChange]
@@ -103,7 +133,7 @@ export function StudioBottomSheet({
       index={open ? snapPoints.length - 1 : -1}
       snapPoints={snapPoints}
       enablePanDownToClose
-      keyboardBehavior="extend"
+      keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
       backgroundComponent={(props: BottomSheetBackgroundProps) => (

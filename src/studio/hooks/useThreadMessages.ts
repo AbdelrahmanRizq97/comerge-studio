@@ -3,6 +3,7 @@ import * as React from 'react';
 import type { Message } from '../../data/messages/types';
 import { messagesRepository } from '../../data/messages/repository';
 import type { ChatMessage } from '../../components/models/types';
+import { useForegroundSignal } from './useForegroundSignal';
 
 export type UseThreadMessagesResult = {
   raw: Message[];
@@ -44,22 +45,35 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   const [raw, setRaw] = React.useState<Message[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
+  const activeRequestIdRef = React.useRef(0);
+  const foregroundSignal = useForegroundSignal(Boolean(threadId));
+
+  const upsertSorted = React.useCallback((prev: Message[], m: Message) => {
+    const next = prev.some((x) => x.id === m.id) ? prev.map((x) => (x.id === m.id ? m : x)) : [...prev, m];
+    // Keep ordering stable for the UI (chat scrolling is very sensitive to reorders).
+    next.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    return next;
+  }, []);
 
   const refetch = React.useCallback(async () => {
     if (!threadId) {
       setRaw([]);
       return;
     }
+    const requestId = ++activeRequestIdRef.current;
     setLoading(true);
     setError(null);
     try {
       const list = await messagesRepository.list(threadId);
-      setRaw(list);
+      if (activeRequestIdRef.current !== requestId) return;
+      // Ensure stable ordering for downstream scrolling behavior.
+      setRaw([...list].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))));
     } catch (e) {
+      if (activeRequestIdRef.current !== requestId) return;
       setError(e instanceof Error ? e : new Error(String(e)));
       setRaw([]);
     } finally {
-      setLoading(false);
+      if (activeRequestIdRef.current === requestId) setLoading(false);
     }
   }, [threadId]);
 
@@ -70,12 +84,18 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   React.useEffect(() => {
     if (!threadId) return;
     const unsubscribe = messagesRepository.subscribeThread(threadId, {
-      onInsert: (m) => setRaw((prev) => [...prev, m]),
-      onUpdate: (m) => setRaw((prev) => prev.map((x) => (x.id === m.id ? m : x))),
+      onInsert: (m) => setRaw((prev) => upsertSorted(prev, m)),
+      onUpdate: (m) => setRaw((prev) => upsertSorted(prev, m)),
       onDelete: (m) => setRaw((prev) => prev.filter((x) => x.id !== m.id)),
     });
     return unsubscribe;
-  }, [threadId]);
+  }, [threadId, upsertSorted, foregroundSignal]);
+
+  React.useEffect(() => {
+    if (!threadId) return;
+    if (foregroundSignal <= 0) return;
+    void refetch();
+  }, [foregroundSignal, refetch, threadId]);
 
   const messages = React.useMemo(() => raw.map(mapMessageToChatMessage), [raw]);
 

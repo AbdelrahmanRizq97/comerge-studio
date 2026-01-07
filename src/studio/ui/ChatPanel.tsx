@@ -58,9 +58,12 @@ export function ChatPanel({
       const all = composerAttachments ?? attachments;
       await onSend(text, all.length > 0 ? all : undefined);
       onClearAttachments?.();
-      requestAnimationFrame(() => listRef.current?.scrollToBottom({ animated: true }));
+      // Avoid double-scroll: ChatMessageList already auto-scrolls when the user is near bottom.
+      if (!nearBottom) {
+        requestAnimationFrame(() => listRef.current?.scrollToBottom({ animated: true }));
+      }
     },
-    [attachments, onClearAttachments, onSend]
+    [attachments, nearBottom, onClearAttachments, onSend]
   );
 
   const handleScrollToBottom = React.useCallback(() => {
@@ -138,7 +141,10 @@ export function ChatPanel({
         </ScrollToBottomButton>
       }
       composer={{
-        disabled: Boolean(loading) || Boolean(sendDisabled) || Boolean(forking),
+        // Keep the input editable even when sending is disallowed (e.g. agent still working),
+        // otherwise iOS will drop focus/keyboard and BottomSheet can get "stuck" with a keyboard-sized gap.
+        disabled: Boolean(loading) || Boolean(forking),
+        sendDisabled: Boolean(sendDisabled) || Boolean(loading) || Boolean(forking),
         sending: Boolean(sending),
         autoFocus: autoFocusComposer,
         onSend: handleSend,

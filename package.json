@@ -1,6 +1,6 @@
 {
   "name": "@comergehq/studio",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Comerge studio",
   "main": "src/index.ts",
   "module": "dist/index.mjs",

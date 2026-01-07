@@ -104,10 +104,14 @@ export function StudioOverlay({
     [confirmMrId, incomingMergeRequests]
   );
 
-  const closeSheet = React.useCallback(() => {
-    setSheetOpen(false);
-    Keyboard.dismiss();
+  const handleSheetOpenChange = React.useCallback((open: boolean) => {
+    setSheetOpen(open);
+    if (!open) Keyboard.dismiss();
   }, []);
+
+  const closeSheet = React.useCallback(() => {
+    handleSheetOpenChange(false);
+  }, [handleSheetOpenChange]);
 
   const openSheet = React.useCallback(() => setSheetOpen(true), []);
 
@@ -178,7 +182,7 @@ export function StudioOverlay({
       {/* Testing glow around runtime */}
       <EdgeGlowFrame visible={isTesting} role="accent" thickness={40} intensity={1} />
 
-      <StudioBottomSheet open={sheetOpen} onOpenChange={setSheetOpen}>
+      <StudioBottomSheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
         <StudioSheetPager
           activePage={activePage}
           width={width}

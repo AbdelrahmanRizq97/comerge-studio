@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, type NativeScrollEvent, type NativeSyntheticEvent, type ViewStyle } from 'react-native';
+import { Platform, View, type NativeScrollEvent, type NativeSyntheticEvent, type ViewStyle } from 'react-native';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 
 import type { ChatMessage } from '../models/types';
@@ -119,6 +119,8 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
         ref={listRef}
         data={messages}
         keyExtractor={(m: ChatMessage) => m.id}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+        keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}

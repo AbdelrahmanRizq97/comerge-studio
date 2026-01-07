@@ -35,8 +35,7 @@ export type StudioBottomSheetProps = {
   children: React.ReactNode;
 
   /**
-   * Additional BottomSheet props, for advanced tuning.
-   * We intentionally do not expose everything as first-class props to keep SRP.
+   * Additional BottomSheet props
    */
   bottomSheetProps?: Omit<
     BottomSheetProps,
@@ -92,20 +91,6 @@ export function StudioBottomSheet({
     });
     return () => sub.remove();
   }, [open, resolvedSheetRef]);
-
-  React.useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    const sub = Keyboard.addListener('keyboardDidHide', () => {
-      const sheet = resolvedSheetRef.current;
-      if (!sheet || !open) return;
-      const targetIndex = snapPoints.length - 1;
-      // Only "re-snap" if we're already at the highest snap point.
-      if (currentIndexRef.current === targetIndex) {
-        setTimeout(() => sheet.snapToIndex(targetIndex), 10);
-      }
-    });
-    return () => sub.remove();
-  }, [open, resolvedSheetRef, snapPoints.length]);
 
   React.useEffect(() => {
     const sheet = resolvedSheetRef.current;

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { Keyboard, Platform, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 
 import type { ChatMessage } from '../models/types';
 import { useTheme } from '../../theme';
@@ -42,11 +41,9 @@ export function ChatPage({
   const insets = useSafeAreaInsets();
   const [composerHeight, setComposerHeight] = React.useState(0);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-  const animatedKeyboard = useAnimatedKeyboard();
 
   React.useEffect(() => {
     if (Platform.OS !== 'ios') return;
-
     const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
     const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
     return () => {
@@ -56,10 +53,6 @@ export function ChatPage({
   }, []);
 
   const footerBottomPadding = Platform.OS === 'ios' ? (keyboardVisible ? 0 : insets.bottom) : insets.bottom + 10;
-  const footerAnimatedStyle = useAnimatedStyle(() => {
-    if (Platform.OS !== 'ios') return { paddingBottom: insets.bottom + 10 };
-    return { paddingBottom: animatedKeyboard.height.value > 0 ? 0 : insets.bottom };
-  });
   const overlayBottom = composerHeight + footerBottomPadding + theme.spacing.lg;
   const bottomInset = composerHeight + footerBottomPadding + theme.spacing.xl;
 
@@ -80,35 +73,36 @@ export function ChatPage({
         </View>
       ) : null}
       <View style={{ flex: 1 }}>
-        <ChatMessageList
-          ref={listRef}
-          messages={messages}
-          showTypingIndicator={showTypingIndicator}
-          renderMessageContent={renderMessageContent}
-          onNearBottomChange={onNearBottomChange}
-          bottomInset={bottomInset}
-        />
-        {resolvedOverlay}
-
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              paddingHorizontal: theme.spacing.lg,
-              paddingTop: theme.spacing.sm,
-            },
-            footerAnimatedStyle,
-          ]}
+        <View
+          style={{ flex: 1 }}
+        >
+          <ChatMessageList
+            ref={listRef}
+            messages={messages}
+            showTypingIndicator={showTypingIndicator}
+            renderMessageContent={renderMessageContent}
+            onNearBottomChange={onNearBottomChange}
+            bottomInset={bottomInset}
+          />
+          {resolvedOverlay}
+        </View>
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.sm,
+            paddingBottom: footerBottomPadding,
+          }}
         >
           <ChatComposer
             {...composer}
             attachments={composer.attachments ?? []}
             onLayout={({ height }) => setComposerHeight(height)}
           />
-        </Animated.View>
+        </View>
       </View>
     </View>
   );

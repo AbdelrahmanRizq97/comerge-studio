@@ -21,6 +21,7 @@ export type ChatPageProps = {
    */
   overlay?: React.ReactNode;
   style?: ViewStyle;
+  composerHorizontalPadding?: number;
   onNearBottomChange?: ChatMessageListProps['onNearBottomChange'];
   listRef?: React.RefObject<ChatMessageListRef | null>;
 };
@@ -34,6 +35,7 @@ export function ChatPage({
   composer,
   overlay,
   style,
+  composerHorizontalPadding,
   onNearBottomChange,
   listRef,
 }: ChatPageProps) {
@@ -92,7 +94,7 @@ export function ChatPage({
             left: 0,
             right: 0,
             bottom: 0,
-            paddingHorizontal: theme.spacing.lg,
+            paddingHorizontal: composerHorizontalPadding ?? theme.spacing.md,
             paddingTop: theme.spacing.sm,
             paddingBottom: footerBottomPadding,
           }}

@@ -129,6 +129,7 @@ export function ChatPanel({
       messages={messages}
       showTypingIndicator={showTypingIndicator}
       topBanner={topBanner}
+      composerHorizontalPadding={0}
       listRef={listRef}
       onNearBottomChange={setNearBottom}
       overlay={

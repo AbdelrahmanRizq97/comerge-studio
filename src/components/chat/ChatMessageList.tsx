@@ -73,16 +73,6 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       [bottomInset, nearBottomThreshold, onNearBottomChange]
     );
 
-    // On first load, start at the bottom
-    React.useEffect(() => {
-      if (initialScrollDoneRef.current) return;
-      if (messages.length === 0) return;
-
-      initialScrollDoneRef.current = true;
-      lastMessageIdRef.current = messages[messages.length - 1]?.id ?? null;
-      const id = requestAnimationFrame(() => scrollToBottom({ animated: false }));
-      return () => cancelAnimationFrame(id);
-    }, [messages, scrollToBottom]);
 
     // When new messages arrive, keep the user pinned to the bottom only if they already were near it.
     React.useEffect(() => {
@@ -105,14 +95,6 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       }
       return undefined;
     }, [showTypingIndicator, scrollToBottom]);
-
-    // When the bottom inset grows/shrinks (e.g. composer height changes), keep pinned users at bottom.
-    React.useEffect(() => {
-      if (!initialScrollDoneRef.current) return;
-      if (!nearBottomRef.current) return;
-      const id = requestAnimationFrame(() => scrollToBottom({ animated: false }));
-      return () => cancelAnimationFrame(id);
-    }, [bottomInset, scrollToBottom]);
 
     return (
       <BottomSheetFlatList

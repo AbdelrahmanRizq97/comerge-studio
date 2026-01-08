@@ -14,6 +14,7 @@ import { ChatPanel } from './ChatPanel';
 import { ConfirmMergeFlow } from './ConfirmMergeFlow';
 import type { MergeRequestSummary } from '../../components/models/types';
 import { useTheme } from '../../theme';
+import { useOptimisticChatMessages } from '../hooks/useOptimisticChatMessages';
 
 import { MergeIcon } from '../../components/icons/MergeIcon';
 
@@ -97,6 +98,14 @@ export function StudioOverlay({
   const [chatAttachments, setChatAttachments] = React.useState<string[]>([]);
   const [commentsAppId, setCommentsAppId] = React.useState<string | null>(null);
   const [commentsCount, setCommentsCount] = React.useState<number | null>(null);
+
+  const threadId = app?.threadId ?? null;
+  const optimistic = useOptimisticChatMessages({
+    threadId,
+    shouldForkOnEdit,
+    chatMessages,
+    onSendChat,
+  });
 
   const [confirmMrId, setConfirmMrId] = React.useState<string | null>(null);
   const confirmMr = React.useMemo(
@@ -213,7 +222,7 @@ export function StudioOverlay({
           }
           chat={
             <ChatPanel
-              messages={chatMessages}
+              messages={optimistic.messages}
               showTypingIndicator={chatShowTypingIndicator}
               loading={chatLoading}
               sendDisabled={chatSendDisabled}
@@ -228,7 +237,7 @@ export function StudioOverlay({
               onClose={closeSheet}
               onNavigateHome={onNavigateHome}
               onStartDraw={startDraw}
-              onSend={onSendChat}
+              onSend={optimistic.onSend}
             />
           }
         />

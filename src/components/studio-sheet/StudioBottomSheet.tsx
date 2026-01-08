@@ -55,7 +55,7 @@ export type StudioBottomSheetProps = {
 export function StudioBottomSheet({
   open,
   onOpenChange,
-  snapPoints = ['80%', '100%'],
+  snapPoints = ['100%'],
   sheetRef,
   background,
   children,
@@ -117,9 +117,9 @@ export function StudioBottomSheet({
       ref={resolvedSheetRef}
       index={open ? snapPoints.length - 1 : -1}
       snapPoints={snapPoints}
+      enableDynamicSizing={false}
       enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
+      enableContentPanningGesture={false}
       android_keyboardInputMode="adjustResize"
       backgroundComponent={(props: BottomSheetBackgroundProps) => (
         <StudioSheetBackground {...props} renderBackground={background?.renderBackground} />

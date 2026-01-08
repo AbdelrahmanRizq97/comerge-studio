@@ -46,10 +46,13 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
     const initialScrollDoneRef = React.useRef(false);
     const lastMessageIdRef = React.useRef<string | null>(null);
 
+    const data = React.useMemo(() => {
+      return [...messages].reverse();
+    }, [messages]);
+
     const scrollToBottom = React.useCallback((options?: { animated?: boolean }) => {
       const animated = options?.animated ?? true;
-      // Scroll to visual bottom (latest messages) in a normal (non-inverted) list.
-      listRef.current?.scrollToEnd({ animated });
+      listRef.current?.scrollToOffset({ offset: 0, animated });
     }, []);
 
     React.useImperativeHandle(ref, () => ({ scrollToBottom }), [scrollToBottom]);
@@ -57,12 +60,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
     const handleScroll = React.useCallback(
       (e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-        // Treat "bottom" as the end of actual messages (excluding the intentional footer spacer),
-        // so "near bottom" still means "near the latest message", not "deep into empty space".
-        const distanceFromBottom = Math.max(
-          contentSize.height - Math.max(bottomInset, 0) - (contentOffset.y + layoutMeasurement.height),
-          0
-        );
+        const distanceFromBottom = Math.max(contentOffset.y - Math.max(bottomInset, 0), 0);
         const isNear = distanceFromBottom <= nearBottomThreshold;
 
         if (nearBottomRef.current !== isNear) {
@@ -99,27 +97,33 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
     return (
       <BottomSheetFlatList
         ref={listRef}
-        data={messages}
+        inverted
+        data={data}
         keyExtractor={(m: ChatMessage) => m.id}
-        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {
+          if (initialScrollDoneRef.current) return;
+          initialScrollDoneRef.current = true;
+          lastMessageIdRef.current = messages.length > 0 ? messages[messages.length - 1]!.id : null;
+          nearBottomRef.current = true;
+          onNearBottomChange?.(true);
+          requestAnimationFrame(() => scrollToBottom({ animated: false }));
+        }}
         contentContainerStyle={[
           {
             paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.sm,
-            paddingBottom: theme.spacing.sm,
+            paddingVertical: theme.spacing.sm,
           },
           contentStyle,
         ]}
-        renderItem={({ item, index }: { item: ChatMessage; index: number }) => (
-          <View style={{ marginTop: index === 0 ? 0 : theme.spacing.sm }}>
-            <ChatMessageBubble message={item} renderContent={renderMessageContent} />
-          </View>
+        ItemSeparatorComponent={() => <View style={{ height: theme.spacing.sm }} />}
+        renderItem={({ item }: { item: ChatMessage }) => (
+          <ChatMessageBubble message={item} renderContent={renderMessageContent} />
         )}
-        ListFooterComponent={
+        ListHeaderComponent={
           <View>
             {showTypingIndicator ? (
               <View style={{ marginTop: theme.spacing.sm, alignSelf: 'flex-start', paddingHorizontal: theme.spacing.lg }}>

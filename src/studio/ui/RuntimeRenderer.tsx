@@ -9,6 +9,11 @@ export type RuntimeRendererProps = {
   appKey: string;
   bundlePath: string | null;
   /**
+   * When true, show the "Preparing app…" UI even if a previous bundle is available.
+   * Used to avoid briefly rendering an outdated bundle during post-edit base refresh.
+   */
+  forcePreparing?: boolean;
+  /**
    * Used to force a runtime remount even when bundlePath stays constant
    * (e.g. base bundle replaced in-place).
    */
@@ -16,8 +21,8 @@ export type RuntimeRendererProps = {
   style?: ViewStyle;
 };
 
-export function RuntimeRenderer({ appKey, bundlePath, renderToken, style }: RuntimeRendererProps) {
-  if (!bundlePath) {
+export function RuntimeRenderer({ appKey, bundlePath, forcePreparing, renderToken, style }: RuntimeRendererProps) {
+  if (!bundlePath || forcePreparing) {
     return (
       <View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }, style]}>
         <Text variant="bodyMuted">Preparing app…</Text>

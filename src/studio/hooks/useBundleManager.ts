@@ -4,6 +4,47 @@ import * as FileSystem from 'expo-file-system/legacy';
 import type { Platform as BundlePlatform, Bundle } from '../../data/apps/bundles/types';
 import { bundlesRepository } from '../../data/apps/bundles/repository';
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function isRetryableNetworkError(e: unknown): boolean {
+  const err = e as any;
+  const code = typeof err?.code === 'string' ? err.code : '';
+  const message = typeof err?.message === 'string' ? err.message : '';
+
+  if (code === 'ERR_NETWORK' || code === 'ECONNABORTED') return true;
+  if (message.toLowerCase().includes('network error')) return true;
+  if (message.toLowerCase().includes('timeout')) return true;
+
+  const status = typeof err?.response?.status === 'number' ? err.response.status : undefined;
+  if (status && (status === 429 || status >= 500)) return true;
+
+  return false;
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: { attempts: number; baseDelayMs: number; maxDelayMs: number }
+): Promise<T> {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const retryable = isRetryableNetworkError(e);
+      if (!retryable || attempt >= opts.attempts) {
+        throw e;
+      }
+      const exp = Math.min(opts.maxDelayMs, opts.baseDelayMs * Math.pow(2, attempt - 1));
+      const jitter = Math.floor(Math.random() * 250);
+      await sleep(exp + jitter);
+    }
+  }
+  throw lastErr;
+}
+
 type BundleSource = {
   appId: string;
   commitId?: string | null;
@@ -29,6 +70,7 @@ export type BundleLoadState = {
    */
   renderToken: number;
   loading: boolean;
+  loadingMode: 'base' | 'test' | null;
   statusLabel: string | null;
   error: string | null;
   /**
@@ -119,8 +161,16 @@ async function getExistingNonEmptyFileUri(fileUri: string): Promise<string | nul
 async function downloadIfMissing(url: string, fileUri: string): Promise<string> {
   const existing = await getExistingNonEmptyFileUri(fileUri);
   if (existing) return existing;
-  const res = await FileSystem.downloadAsync(url, fileUri);
-  return res.uri;
+  return await withRetry(
+    async () => {
+      await deleteFileIfExists(fileUri);
+      const res = await FileSystem.downloadAsync(url, fileUri);
+      const ok = await getExistingNonEmptyFileUri(res.uri);
+      if (!ok) throw new Error('Downloaded bundle is empty.');
+      return res.uri;
+    },
+    { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
+  );
 }
 
 async function deleteFileIfExists(fileUri: string) {
@@ -136,11 +186,15 @@ async function deleteFileIfExists(fileUri: string) {
 async function safeReplaceFileFromUrl(url: string, targetUri: string, tmpKey: string): Promise<string> {
   const tmpUri = toBundleFileUri(`tmp:${tmpKey}:${Date.now()}`);
   try {
-    await FileSystem.downloadAsync(url, tmpUri);
-    const tmpOk = await getExistingNonEmptyFileUri(tmpUri);
-    if (!tmpOk) {
-      throw new Error('Downloaded bundle is empty.');
-    }
+    await withRetry(
+      async () => {
+        await deleteFileIfExists(tmpUri);
+        await FileSystem.downloadAsync(url, tmpUri);
+        const tmpOk = await getExistingNonEmptyFileUri(tmpUri);
+        if (!tmpOk) throw new Error('Downloaded bundle is empty.');
+      },
+      { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
+    );
 
     await deleteFileIfExists(targetUri);
     await FileSystem.moveAsync({ from: tmpUri, to: targetUri });
@@ -156,12 +210,18 @@ async function safeReplaceFileFromUrl(url: string, targetUri: string, tmpKey: st
 async function pollBundle(appId: string, bundleId: string, opts: { timeoutMs: number; intervalMs: number }): Promise<Bundle> {
   const start = Date.now();
   while (true) {
-    const bundle = await bundlesRepository.getById(appId, bundleId);
-    if (bundle.status === 'succeeded' || bundle.status === 'failed') return bundle;
+    try {
+      const bundle = await bundlesRepository.getById(appId, bundleId);
+      if (bundle.status === 'succeeded' || bundle.status === 'failed') return bundle;
+    } catch (e) {
+      if (!isRetryableNetworkError(e)) {
+        throw e;
+      }
+    }
     if (Date.now() - start > opts.timeoutMs) {
       throw new Error('Bundle build timed out.');
     }
-    await new Promise((r) => setTimeout(r, opts.intervalMs));
+    await sleep(opts.intervalMs);
   }
 }
 
@@ -174,11 +234,16 @@ async function resolveBundlePath(
   const dir = bundlesCacheDir();
   await ensureDir(dir);
 
-  const initiate = await bundlesRepository.initiate(appId, {
-    platform,
-    commitId: commitId ?? undefined,
-    idempotencyKey: `${appId}:${commitId ?? 'head'}:${platform}`,
-  });
+  const initiate = await withRetry(
+    async () => {
+      return await bundlesRepository.initiate(appId, {
+        platform,
+        commitId: commitId ?? undefined,
+        idempotencyKey: `${appId}:${commitId ?? 'head'}:${platform}`,
+      });
+    },
+    { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
+  );
 
   const finalBundle =
     initiate.status === 'succeeded' || initiate.status === 'failed'
@@ -189,7 +254,12 @@ async function resolveBundlePath(
     throw new Error('Bundle build failed.');
   }
 
-  const signed = await bundlesRepository.getSignedDownloadUrl(appId, finalBundle.id, { redirect: false });
+  const signed = await withRetry(
+    async () => {
+      return await bundlesRepository.getSignedDownloadUrl(appId, finalBundle.id, { redirect: false });
+    },
+    { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
+  );
   const bundlePath =
     mode === 'base'
       ? await safeReplaceFileFromUrl(
@@ -209,6 +279,7 @@ export function useBundleManager({
   const [bundlePath, setBundlePath] = React.useState<string | null>(null);
   const [renderToken, setRenderToken] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
+  const [loadingMode, setLoadingMode] = React.useState<'base' | 'test' | null>(null);
   const [statusLabel, setStatusLabel] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isTesting, setIsTesting] = React.useState(false);
@@ -229,6 +300,7 @@ export function useBundleManager({
       baseOpIdRef.current += 1;
       if (activeLoadModeRef.current === 'base') {
         setLoading(false);
+        setLoadingMode(null);
         setStatusLabel(null);
         activeLoadModeRef.current = null;
       }
@@ -303,6 +375,7 @@ export function useBundleManager({
     const opId = mode === 'base' ? ++baseOpIdRef.current : ++testOpIdRef.current;
     activeLoadModeRef.current = mode;
     setLoading(true);
+    setLoadingMode(mode);
     setError(null);
     setStatusLabel(mode === 'test' ? 'Loading test bundle…' : 'Loading latest build…');
 
@@ -357,6 +430,7 @@ export function useBundleManager({
       if (mode === 'base' && opId !== baseOpIdRef.current) return;
       if (mode === 'test' && opId !== testOpIdRef.current) return;
       setLoading(false);
+      setLoadingMode(null);
       if (activeLoadModeRef.current === mode) activeLoadModeRef.current = null;
     }
   }, [activateCachedBase, platform]);
@@ -383,7 +457,7 @@ export function useBundleManager({
     void loadBase();
   }, [base.appId, base.commitId, platform, canRequestLatest, loadBase]);
 
-  return { bundlePath, renderToken, loading, statusLabel, error, isTesting, loadBase, loadTest, restoreBase };
+  return { bundlePath, renderToken, loading, loadingMode, statusLabel, error, isTesting, loadBase, loadTest, restoreBase };
 }
 
 

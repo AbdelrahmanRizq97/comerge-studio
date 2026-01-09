@@ -125,6 +125,34 @@ function ComergeStudioInner({
     canRequestLatest: runtimeApp?.status === 'ready',
   });
 
+  const sawEditingOnActiveAppRef = React.useRef(false);
+  const [showPostEditPreparing, setShowPostEditPreparing] = React.useState(false);
+  React.useEffect(() => {
+    sawEditingOnActiveAppRef.current = false;
+    setShowPostEditPreparing(false);
+  }, [activeAppId]);
+
+  React.useEffect(() => {
+    if (!app?.id) return;
+    if (app.status === 'editing') {
+      sawEditingOnActiveAppRef.current = true;
+      setShowPostEditPreparing(false);
+      return;
+    }
+    if (app.status === 'ready' && sawEditingOnActiveAppRef.current) {
+      setShowPostEditPreparing(true);
+      sawEditingOnActiveAppRef.current = false;
+    }
+  }, [app?.id, app?.status]);
+
+  React.useEffect(() => {
+    if (!showPostEditPreparing) return;
+    const stillProcessingBaseBundle = bundle.loading && bundle.loadingMode === 'base' && !bundle.isTesting;
+    if (!stillProcessingBaseBundle) {
+      setShowPostEditPreparing(false);
+    }
+  }, [showPostEditPreparing, bundle.loading, bundle.loadingMode, bundle.isTesting]);
+
   const threadId = app?.threadId ?? '';
   const thread = useThreadMessages(threadId);
 
@@ -173,7 +201,12 @@ function ComergeStudioInner({
   return (
       <View style={[{ flex: 1 }, style]}>
       <View ref={captureTargetRef} style={{ flex: 1 }} collapsable={false}>
-        <RuntimeRenderer appKey={appKey} bundlePath={bundle.bundlePath} renderToken={bundle.renderToken} />
+        <RuntimeRenderer
+          appKey={appKey}
+          bundlePath={bundle.bundlePath}
+          forcePreparing={showPostEditPreparing}
+          renderToken={bundle.renderToken}
+        />
 
         <StudioOverlay
           captureTargetRef={captureTargetRef}

@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { Pressable, View, type ViewStyle } from 'react-native';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 import { useTheme } from '../../theme';
+import { withAlpha } from '../utils/color';
+import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
 export type StudioSheetHeaderIconButtonProps = {
   onPress: () => void;
@@ -38,11 +40,12 @@ export function StudioSheetHeaderIconButton({
   const glassInnerBg = intent === 'danger' ? theme.colors.danger : theme.colors.primary;
 
   const resolvedOpacity = disabled ? 0.6 : pressed ? 0.9 : 1;
+  const glassBg = withAlpha(glassInnerBg, resolvedOpacity);
 
   return (
     <View style={style}>
       {appearance === 'glass' ? (
-        <LiquidGlassView
+        <ResettableLiquidGlassView
           style={[{ borderRadius: 100 }, !isLiquidGlassSupported && { backgroundColor: glassFallbackBg }]}
           interactive
           effect="clear"
@@ -54,8 +57,7 @@ export function StudioSheetHeaderIconButton({
               borderRadius: 100,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: glassInnerBg,
-              opacity: resolvedOpacity,
+              backgroundColor: glassBg,
             }}
           >
             <Pressable
@@ -73,7 +75,7 @@ export function StudioSheetHeaderIconButton({
               {children}
             </Pressable>
           </View>
-        </LiquidGlassView>
+        </ResettableLiquidGlassView>
       ) : (
         <View
           style={{

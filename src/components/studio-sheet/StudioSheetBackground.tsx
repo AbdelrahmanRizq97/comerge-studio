@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { Platform, View, type ViewStyle } from 'react-native';
 import type { BottomSheetBackgroundProps } from '@gorhom/bottom-sheet';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 import { useTheme } from '../../theme';
+import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
 export type StudioSheetBackgroundProps = BottomSheetBackgroundProps & {
   /**
@@ -35,7 +36,7 @@ export function StudioSheetBackground({
 
   return (
     <>
-      <LiquidGlassView
+      <ResettableLiquidGlassView
         style={[containerStyle, !isLiquidGlassSupported && { backgroundColor: fallbackBgColor }]}
         effect="regular"
       />

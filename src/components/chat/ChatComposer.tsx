@@ -9,12 +9,14 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { Plus } from 'lucide-react-native';
 
 import { useTheme } from '../../theme';
 import { MultilineTextInput } from './MultilineTextInput';
 import { IconChevronRight, IconClose } from '../icons/StudioIcons';
+import { withAlpha } from '../utils/color';
+import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
 export type ChatComposerProps = {
   value?: string;
@@ -157,6 +159,7 @@ export function ChatComposer({
 
   const textareaBgColor = theme.scheme === 'dark' ? '#18181B' : '#F6F6F6';
   const placeholderTextColor = theme.scheme === 'dark' ? '#A1A1AA' : '#71717A';
+  const sendBg = withAlpha(theme.colors.primary, isButtonDisabled ? 0.6 : sendPressed ? 0.9 : 1);
 
   return (
     <View
@@ -165,7 +168,7 @@ export function ChatComposer({
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
         <Animated.View style={{ flex: 1, transform: [{ translateX: shakeAnim }] }}>
-          <LiquidGlassView
+          <ResettableLiquidGlassView
             style={[
               // LiquidGlassView doesn't reliably auto-size to children; ensure enough height for the
               // thumbnail strip when attachments are present.
@@ -234,10 +237,10 @@ export function ChatComposer({
                 lineHeight: 20,
               }}
             />
-          </LiquidGlassView>
+          </ResettableLiquidGlassView>
         </Animated.View>
 
-        <LiquidGlassView
+        <ResettableLiquidGlassView
           style={[{ borderRadius: 100 }, !isLiquidGlassSupported && { backgroundColor: textareaBgColor }]}
           interactive
           effect="clear"
@@ -248,8 +251,7 @@ export function ChatComposer({
               height: 44,
               borderRadius: 22,
               overflow: 'hidden',
-              backgroundColor: theme.colors.primary,
-              opacity: isButtonDisabled ? 0.6 : sendPressed ? 0.9 : 1,
+              backgroundColor: sendBg,
             }}
           >
             <Pressable
@@ -270,7 +272,7 @@ export function ChatComposer({
               )}
             </Pressable>
           </View>
-        </LiquidGlassView>
+        </ResettableLiquidGlassView>
       </View>
     </View>
   );

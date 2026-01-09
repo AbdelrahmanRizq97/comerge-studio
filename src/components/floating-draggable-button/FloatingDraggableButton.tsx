@@ -20,11 +20,12 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 
-import { DEFAULT_EDGE_PADDING, DEFAULT_OFFSET, DEFAULT_SIZE, ENTER_ROTATION_FROM_DEG, ENTER_SCALE_FROM, HIDDEN_OPACITY, PULSE_DURATION_MS } from './constants';
+import { DEFAULT_EDGE_PADDING, DEFAULT_OFFSET, DEFAULT_SIZE, ENTER_ROTATION_FROM_DEG, ENTER_SCALE_FROM, PULSE_DURATION_MS } from './constants';
 import type { FloatingDraggableButtonProps } from './types';
 import { useTheme } from '../../theme';
+import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
 const HIDDEN_OFFSET_X = 20;
 
@@ -34,9 +35,6 @@ const SPRING_SCALE_OUT = { damping: 12, stiffness: 150 } as const;
 const SPRING_ROTATION_IN = { damping: 15, stiffness: 80 } as const;
 const SPRING_ROTATION_GRAB = { damping: 20 } as const;
 const SPRING_SCALE_GRAB = { damping: 15, stiffness: 200 } as const;
-
-const TIMING_OPACITY_IN = { duration: 300, easing: Easing.out(Easing.ease) } as const;
-const TIMING_OPACITY_OUT = { duration: 250, easing: Easing.in(Easing.ease) } as const;
 
 function clamp(value: number, min: number, max: number) {
   'worklet';
@@ -91,7 +89,6 @@ export function FloatingDraggableButton({
   const translateY = useSharedValue(getHiddenTranslateY(height));
   const scale = useSharedValue(ENTER_SCALE_FROM);
   const rotation = useSharedValue(ENTER_ROTATION_FROM_DEG);
-  const opacity = useSharedValue(1);
   const borderPulse = useSharedValue(0);
   const startPos = useRef({ x: 0, y: 0 });
   const isAnimatingOut = useRef(false);
@@ -99,26 +96,16 @@ export function FloatingDraggableButton({
   const animateToHidden = useCallback(
     (options?: { onFinish?: () => void }) => {
       // Animate back to starting position (reverse of entrance)
-      translateX.value = withSpring(getHiddenTranslateX(size), SPRING_POSITION);
+      const finish = options?.onFinish;
+
+      translateX.value = withSpring(getHiddenTranslateX(size), SPRING_POSITION, (finished?: boolean) => {
+        if (finished && finish) runOnJS(finish)();
+      });
       translateY.value = withSpring(getHiddenTranslateY(height), SPRING_POSITION);
       scale.value = withSpring(ENTER_SCALE_FROM, SPRING_SCALE_IN);
       rotation.value = withSpring(ENTER_ROTATION_FROM_DEG, SPRING_ROTATION_IN);
-
-      const finish = options?.onFinish;
-      if (!finish) {
-        opacity.value = withTiming(HIDDEN_OPACITY, TIMING_OPACITY_OUT);
-        return;
-      }
-
-      opacity.value = withTiming(
-        HIDDEN_OPACITY as unknown as number,
-        TIMING_OPACITY_OUT,
-        (finished?: boolean) => {
-          if (finished) runOnJS(finish)();
-        }
-      );
     },
-    [height, opacity, rotation, scale, size, translateX, translateY]
+    [height, rotation, scale, size, translateX, translateY]
   );
 
   const animateOut = useCallback(() => {
@@ -163,8 +150,7 @@ export function FloatingDraggableButton({
       withSpring(1, SPRING_SCALE_OUT)
     );
     rotation.value = withSpring(0, SPRING_ROTATION_IN);
-    opacity.value = withTiming(1, TIMING_OPACITY_IN);
-  }, [height, offset.bottom, offset.left, opacity, rotation, scale, size, translateX, translateY]);
+  }, [height, offset.bottom, offset.left, rotation, scale, size, translateX, translateY]);
 
   // Initial animation on mount
   useEffect(() => {
@@ -228,7 +214,6 @@ export function FloatingDraggableButton({
       { scale: scale.value },
       { rotate: `${rotation.value}deg` },
     ],
-    opacity: opacity.value,
   }));
 
   const borderAnimatedStyle = useAnimatedStyle(() => {
@@ -257,7 +242,7 @@ export function FloatingDraggableButton({
       accessibilityLabel={ariaLabel}
     >
       <Animated.View style={[{ width: size, height: size, borderRadius: size / 2 }, borderAnimatedStyle]}>
-        <LiquidGlassView
+        <ResettableLiquidGlassView
           style={[{ flex: 1, borderRadius: size / 2 }, !isLiquidGlassSupported && { backgroundColor: fallbackBgColor }]}
           interactive
           effect="clear"
@@ -271,7 +256,7 @@ export function FloatingDraggableButton({
           >
             {children ?? <View />}
           </Pressable>
-        </LiquidGlassView>
+        </ResettableLiquidGlassView>
       </Animated.View>
 
       {badgeCount > 0 && (

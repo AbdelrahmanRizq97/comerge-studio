@@ -1,11 +1,12 @@
 import * as React from 'react';
 import { Pressable, View, type ViewStyle } from 'react-native';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { Heart, MessageCircle } from 'lucide-react-native';
 
 import { useTheme } from '../../theme';
 import { Text } from '../primitives/Text';
 import { MergeIcon } from '../icons/MergeIcon';
+import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
 export type StatsBarProps = {
   likeCount: number;
@@ -41,7 +42,7 @@ export function StatsBar({
         style,
       ]}
     >
-      <LiquidGlassView
+      <ResettableLiquidGlassView
         style={[
           { borderRadius: 100, overflow: 'hidden' },
           fixedWidth ? { width: fixedWidth } : undefined,
@@ -101,7 +102,7 @@ export function StatsBar({
             </Text>
           </View>
         </View>
-      </LiquidGlassView>
+      </ResettableLiquidGlassView>
     </View>
   );
 }

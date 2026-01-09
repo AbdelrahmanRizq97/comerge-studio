@@ -6,7 +6,7 @@ import {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 import { Play } from 'lucide-react-native';
 
 import { useTheme } from '../../theme';
@@ -17,6 +17,7 @@ import { CommentRow } from './CommentRow';
 import { useAppComments } from './useAppComments';
 import { useAppDetails } from './useAppDetails';
 import { useIosKeyboardSnapFix } from './useIosKeyboardSnapFix';
+import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
 export type AppCommentsSheetProps = {
   appId: string | null;
@@ -117,7 +118,7 @@ export function AppCommentsSheet({ appId, onClose, onCountChange, onPlayApp }: A
             {loadingApp ? 'Loading...' : app?.name || 'Comments'}
           </Text>
 
-          <LiquidGlassView
+          <ResettableLiquidGlassView
             style={[
               { borderRadius: 24 },
               !isLiquidGlassSupported && { backgroundColor: theme.scheme === 'dark' ? '#18181B' : '#F6F6F6' },
@@ -130,10 +131,9 @@ export function AppCommentsSheet({ appId, onClose, onCountChange, onPlayApp }: A
                 width: 32,
                 height: 32,
                 borderRadius: 999,
-                backgroundColor: theme.colors.primary,
+                backgroundColor: withAlpha(theme.colors.primary, appId ? 1 : 0.5),
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: appId ? 1 : 0.5,
               }}
             >
               <Pressable
@@ -147,13 +147,13 @@ export function AppCommentsSheet({ appId, onClose, onCountChange, onPlayApp }: A
                     alignItems: 'center',
                     justifyContent: 'center',
                   },
-                  pressed ? { opacity: 0.85 } : null,
+                  pressed ? { transform: [{ scale: 0.96 }] } : null,
                 ]}
               >
                 <Play size={16} color={theme.colors.onPrimary} />
               </Pressable>
             </View>
-          </LiquidGlassView>
+          </ResettableLiquidGlassView>
         </View>
 
         <BottomSheetScrollView

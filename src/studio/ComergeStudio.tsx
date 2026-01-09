@@ -13,6 +13,7 @@ import { useStudioActions } from './hooks/useStudioActions';
 import { hasNoOutcomeAfterLastHuman } from './lib/chat';
 import { RuntimeRenderer } from './ui/RuntimeRenderer';
 import { StudioOverlay } from './ui/StudioOverlay';
+import { LiquidGlassResetProvider } from '../components/utils/liquidGlassReset';
 
 export type ComergeStudioProps = {
   appId: string;
@@ -46,20 +47,22 @@ export function ComergeStudio({
     <StudioBootstrap apiKey={apiKey}>
       {({ userId }) => (
         <BottomSheetModalProvider>
-          <ComergeStudioInner
-            userId={userId}
-            activeAppId={activeAppId}
-            setActiveAppId={setActiveAppId}
-            runtimeAppId={runtimeAppId}
-            setRuntimeAppId={setRuntimeAppId}
-            pendingRuntimeTargetAppId={pendingRuntimeTargetAppId}
-            setPendingRuntimeTargetAppId={setPendingRuntimeTargetAppId}
-            appKey={appKey}
-            platform={platform}
-            onNavigateHome={onNavigateHome}
-            captureTargetRef={captureTargetRef}
-            style={style}
-          />
+          <LiquidGlassResetProvider resetTriggers={[appId, activeAppId, runtimeAppId]}>
+            <ComergeStudioInner
+              userId={userId}
+              activeAppId={activeAppId}
+              setActiveAppId={setActiveAppId}
+              runtimeAppId={runtimeAppId}
+              setRuntimeAppId={setRuntimeAppId}
+              pendingRuntimeTargetAppId={pendingRuntimeTargetAppId}
+              setPendingRuntimeTargetAppId={setPendingRuntimeTargetAppId}
+              appKey={appKey}
+              platform={platform}
+              onNavigateHome={onNavigateHome}
+              captureTargetRef={captureTargetRef}
+              style={style}
+            />
+          </LiquidGlassResetProvider>
         </BottomSheetModalProvider>
       )}
     </StudioBootstrap>

@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "axios": "^1.13.1",
+    "@comergehq/studio-control": "^0.1.5",
     "react-native-markdown-display": "^7.0.2",
     "react-native-logs": "^5.5.0"
   },

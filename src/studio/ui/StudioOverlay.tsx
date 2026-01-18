@@ -15,6 +15,11 @@ import { ConfirmMergeFlow } from './ConfirmMergeFlow';
 import type { MergeRequestSummary } from '../../components/models/types';
 import { useTheme } from '../../theme';
 import { useOptimisticChatMessages } from '../hooks/useOptimisticChatMessages';
+import {
+  publishComergeStudioUIState,
+  startStudioControlPolling,
+  type StudioControlOptions,
+} from '@comergehq/studio-control';
 
 import { MergeIcon } from '../../components/icons/MergeIcon';
 
@@ -56,6 +61,8 @@ export type StudioOverlayProps = {
 
   // Navigation callbacks
   onNavigateHome?: () => void;
+  showFloatingButton: boolean;
+  studioControlOptions?: StudioControlOptions;
 };
 
 type SheetPage = 'preview' | 'chat';
@@ -87,11 +94,14 @@ export function StudioOverlay({
   chatShowTypingIndicator,
   onSendChat,
   onNavigateHome,
+  showFloatingButton,
+  studioControlOptions,
 }: StudioOverlayProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
+  const sheetOpenRef = React.useRef(sheetOpen);
   const [activePage, setActivePage] = React.useState<SheetPage>('preview');
 
   const [drawing, setDrawing] = React.useState(false);
@@ -186,6 +196,23 @@ export function StudioOverlay({
     [closeSheet, onTestMr]
   );
 
+  React.useEffect(() => {
+    sheetOpenRef.current = sheetOpen;
+  }, [sheetOpen]);
+
+  React.useEffect(() => {
+    const poller = startStudioControlPolling((action) => {
+      if (action === 'show' && !sheetOpenRef.current) openSheet();
+      if (action === 'hide' && sheetOpenRef.current) closeSheet();
+      if (action === 'toggle') toggleSheet();
+    }, studioControlOptions);
+    return () => poller.stop();
+  }, [closeSheet, openSheet, studioControlOptions, toggleSheet]);
+
+  React.useEffect(() => {
+    void publishComergeStudioUIState(sheetOpen, studioControlOptions);
+  }, [sheetOpen, studioControlOptions]);
+
   return (
     <>
       {/* Testing glow around runtime */}
@@ -243,17 +270,19 @@ export function StudioOverlay({
         />
       </StudioBottomSheet>
 
-      <FloatingDraggableButton
-        visible={!sheetOpen && !drawing}
-        ariaLabel={sheetOpen ? 'Hide studio' : 'Show studio'}
-        badgeCount={incomingMergeRequests.length}
-        onPress={toggleSheet}
-        isLoading={app?.status === 'editing'}
-      >
-        <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-          <MergeIcon width={24} height={24} color={theme.colors.floatingContent} />
-        </View>
-      </FloatingDraggableButton>
+      {showFloatingButton && (
+        <FloatingDraggableButton
+          visible={!sheetOpen && !drawing}
+          ariaLabel={sheetOpen ? 'Hide studio' : 'Show studio'}
+          badgeCount={incomingMergeRequests.length}
+          onPress={toggleSheet}
+          isLoading={app?.status === 'editing'}
+        >
+          <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
+            <MergeIcon width={24} height={24} color={theme.colors.floatingContent} />
+          </View>
+        </FloatingDraggableButton>
+      )}
 
       <DrawModeOverlay
         visible={drawing}

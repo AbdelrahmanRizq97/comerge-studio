@@ -33,7 +33,9 @@
       "@supabase/supabase-js": ["../bld-playground-expo/node_modules/@supabase/supabase-js"],
       "@supabase/supabase-js/*": ["../bld-playground-expo/node_modules/@supabase/supabase-js/*"],
       "lucide-react-native": ["../bld-playground-expo/node_modules/lucide-react-native"],
-      "lucide-react-native/*": ["../bld-playground-expo/node_modules/lucide-react-native/*"]
+      "lucide-react-native/*": ["../bld-playground-expo/node_modules/lucide-react-native/*"],
+      "@comergehq/studio-control": ["../comerge-studio-control/src"],
+      "@comergehq/studio-control/*": ["../comerge-studio-control/src/*"],
     },
     "typeRoots": ["../bld-playground-expo/node_modules/@types"]
   },

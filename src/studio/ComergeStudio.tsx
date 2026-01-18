@@ -21,6 +21,8 @@ export type ComergeStudioProps = {
   appKey?: string;
   onNavigateHome?: () => void;
   style?: ViewStyle;
+  showFloatingButton?: boolean;
+  studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
 };
 
 export function ComergeStudio({
@@ -29,6 +31,8 @@ export function ComergeStudio({
   appKey = 'MicroMain',
   onNavigateHome,
   style,
+  showFloatingButton = true,
+  studioControlOptions,
 }: ComergeStudioProps) {
   const [activeAppId, setActiveAppId] = React.useState(appId);
   const [runtimeAppId, setRuntimeAppId] = React.useState(appId);
@@ -61,6 +65,8 @@ export function ComergeStudio({
               onNavigateHome={onNavigateHome}
               captureTargetRef={captureTargetRef}
               style={style}
+              showFloatingButton={showFloatingButton}
+              studioControlOptions={studioControlOptions}
             />
           </LiquidGlassResetProvider>
         </BottomSheetModalProvider>
@@ -82,6 +88,8 @@ type InnerProps = {
   onNavigateHome?: () => void;
   captureTargetRef: React.RefObject<View | null>;
   style?: ViewStyle;
+  showFloatingButton: boolean;
+  studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
 };
 
 function ComergeStudioInner({
@@ -97,6 +105,8 @@ function ComergeStudioInner({
   onNavigateHome,
   captureTargetRef,
   style,
+  showFloatingButton,
+  studioControlOptions,
 }: InnerProps) {
   const { app, loading: appLoading } = useApp(activeAppId);
   const { app: runtimeAppFromHook } = useApp(runtimeAppId, { enabled: runtimeAppId !== activeAppId });
@@ -266,6 +276,8 @@ function ComergeStudioInner({
           chatShowTypingIndicator={chatShowTypingIndicator}
           onSendChat={(text, attachments) => actions.sendEdit({ prompt: text, attachments })}
           onNavigateHome={onNavigateHome}
+          showFloatingButton={showFloatingButton}
+          studioControlOptions={studioControlOptions}
         />
       </View>
     </View>

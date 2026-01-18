@@ -3,8 +3,13 @@
     "strict": true,
     "jsx": "react-jsx",
     "skipLibCheck": true,
+    "baseUrl": ".",
     "moduleResolution": "Bundler",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "paths": {
+      "@comergehq/studio-control": ["../comerge-studio-control/src"],
+      "@comergehq/studio-control/*": ["../comerge-studio-control/src/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "build", "**/*.test.*", "**/__tests__/**"]

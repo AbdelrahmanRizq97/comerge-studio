@@ -14,6 +14,10 @@ export type RuntimeRendererProps = {
    */
   forcePreparing?: boolean;
   /**
+   * When false, suppress "Preparing app…" on the very first load.
+   */
+  allowInitialPreparing?: boolean;
+  /**
    * Used to force a runtime remount even when bundlePath stays constant
    * (e.g. base bundle replaced in-place).
    */
@@ -21,8 +25,27 @@ export type RuntimeRendererProps = {
   style?: ViewStyle;
 };
 
-export function RuntimeRenderer({ appKey, bundlePath, forcePreparing, renderToken, style }: RuntimeRendererProps) {
+export function RuntimeRenderer({
+  appKey,
+  bundlePath,
+  forcePreparing,
+  renderToken,
+  style,
+  allowInitialPreparing = true,
+}: RuntimeRendererProps) {
+  const [hasRenderedOnce, setHasRenderedOnce] = React.useState(false);
+
+  React.useEffect(() => {
+    if (bundlePath) {
+      setHasRenderedOnce(true);
+    }
+  }, [bundlePath]);
+
   if (!bundlePath || forcePreparing) {
+    if (!hasRenderedOnce && !forcePreparing && !allowInitialPreparing) {
+      return <View style={[{ flex: 1 }, style]} />;
+    }
+
     return (
       <View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }, style]}>
         <Text variant="bodyMuted">Preparing app…</Text>

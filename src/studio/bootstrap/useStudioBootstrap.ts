@@ -3,7 +3,8 @@ import * as React from 'react';
 import { setClientApiKey } from '../../core/services/http/public';
 import { ensureAuthenticatedSession, ensureAnonymousSession } from '../../core/services/supabase/auth';
 import { isSupabaseClientInjected, setSupabaseConfig } from '../../core/services/supabase/client';
-import { studioConfigRepository } from '../../data/public/studio-config/repository';
+const SUPABASE_URL = 'https://xtfxwbckjpfmqubnsusu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0Znh3YmNranBmbXF1Ym5zdXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDEyMzAsImV4cCI6MjA3NjE3NzIzMH0.dzWGAWrK4CvrmHVHzf8w7JlUZohdap0ZPnLZnABMV8s';
 
 export type UseStudioBootstrapOptions = {
   apiKey: string;
@@ -30,8 +31,7 @@ export function useStudioBootstrap(options: UseStudioBootstrapOptions): StudioBo
         setClientApiKey(options.apiKey);
         const requireAuth = isSupabaseClientInjected();
         if (!requireAuth) {
-          const cfg = await studioConfigRepository.get();
-          setSupabaseConfig(cfg);
+          setSupabaseConfig({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY });
         }
         const { user } = requireAuth ? await ensureAuthenticatedSession() : await ensureAnonymousSession();
 

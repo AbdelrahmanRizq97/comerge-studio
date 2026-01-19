@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Asset } from 'expo-asset';
 
 import type { Platform as BundlePlatform, Bundle } from '../../data/apps/bundles/types';
 import { bundlesRepository } from '../../data/apps/bundles/repository';
@@ -60,6 +61,7 @@ export type UseBundleManagerParams = {
    * Test bundles (merge request previews) are NOT gated by this.
    */
   canRequestLatest?: boolean;
+  embeddedBaseBundles?: EmbeddedBaseBundles;
 };
 
 export type BundleLoadState = {
@@ -83,6 +85,16 @@ export type UseBundleManagerResult = BundleLoadState & {
   loadBase: () => Promise<void>;
   loadTest: (src: BundleSource) => Promise<void>;
   restoreBase: () => Promise<void>;
+};
+
+export type EmbeddedBaseBundle = {
+  module: number;
+  meta?: BaseBundleMeta | null;
+};
+
+export type EmbeddedBaseBundles = {
+  ios?: EmbeddedBaseBundle;
+  android?: EmbeddedBaseBundle;
 };
 
 function safeName(s: string) {
@@ -183,6 +195,31 @@ async function deleteFileIfExists(fileUri: string) {
   }
 }
 
+async function hydrateBaseFromEmbeddedAsset(
+  appId: string,
+  platform: BundlePlatform,
+  embedded: EmbeddedBaseBundle | undefined
+): Promise<{ bundlePath: string; meta?: BaseBundleMeta | null } | null> {
+  if (!embedded?.module) return null;
+  const key = baseBundleKey(appId, platform);
+  const targetUri = toBundleFileUri(key);
+  const existing = await getExistingNonEmptyFileUri(targetUri);
+  if (existing) return { bundlePath: existing, meta: embedded.meta ?? null };
+
+  const asset = Asset.fromModule(embedded.module);
+  await asset.downloadAsync();
+  const sourceUri = asset.localUri ?? asset.uri;
+  if (!sourceUri) return null;
+  const info = await FileSystem.getInfoAsync(sourceUri);
+  if (!info.exists) return null;
+
+  await deleteFileIfExists(targetUri);
+  await FileSystem.copyAsync({ from: sourceUri, to: targetUri });
+  const finalUri = await getExistingNonEmptyFileUri(targetUri);
+  if (!finalUri) return null;
+  return { bundlePath: finalUri, meta: embedded.meta ?? null };
+}
+
 async function safeReplaceFileFromUrl(url: string, targetUri: string, tmpKey: string): Promise<string> {
   const tmpUri = toBundleFileUri(`tmp:${tmpKey}:${Date.now()}`);
   try {
@@ -275,6 +312,7 @@ export function useBundleManager({
   base,
   platform,
   canRequestLatest = true,
+  embeddedBaseBundles,
 }: UseBundleManagerParams): UseBundleManagerResult {
   const [bundlePath, setBundlePath] = React.useState<string | null>(null);
   const [renderToken, setRenderToken] = React.useState(0);
@@ -286,6 +324,9 @@ export function useBundleManager({
 
   const baseRef = React.useRef(base);
   baseRef.current = base;
+
+  const embeddedBaseBundlesRef = React.useRef<EmbeddedBaseBundles | undefined>(embeddedBaseBundles);
+  embeddedBaseBundlesRef.current = embeddedBaseBundles;
 
   // Monotonic operation ids to prevent stale async loads from overwriting newer ones.
   const baseOpIdRef = React.useRef(0);
@@ -320,11 +361,23 @@ export function useBundleManager({
         await ensureDir(dir);
         const key = baseBundleKey(appId, platform);
         const uri = toBundleFileUri(key);
-        const existing = await getExistingNonEmptyFileUri(uri);
+        let existing = await getExistingNonEmptyFileUri(uri);
+        let embeddedMeta: BaseBundleMeta | null = null;
+        if (!existing) {
+          const embedded = embeddedBaseBundlesRef.current?.[platform];
+          const hydrated = await hydrateBaseFromEmbeddedAsset(appId, platform, embedded);
+          if (hydrated?.bundlePath) {
+            existing = hydrated.bundlePath;
+            embeddedMeta = hydrated.meta ?? null;
+            if (embeddedMeta) {
+              await writeJsonFile(toBundleMetaFileUri(key), embeddedMeta);
+            }
+          }
+        }
         if (existing) {
           lastBaseBundlePathRef.current = existing;
           setBundlePath(existing);
-          const meta = await readJsonFile<BaseBundleMeta>(toBundleMetaFileUri(key));
+          const meta = embeddedMeta ?? (await readJsonFile<BaseBundleMeta>(toBundleMetaFileUri(key)));
           if (meta?.fingerprint) {
             lastBaseFingerprintRef.current = meta.fingerprint;
           }

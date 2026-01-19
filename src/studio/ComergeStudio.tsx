@@ -7,6 +7,7 @@ import { StudioBootstrap } from './bootstrap/StudioBootstrap';
 import { useApp } from './hooks/useApp';
 import { useThreadMessages } from './hooks/useThreadMessages';
 import { useBundleManager } from './hooks/useBundleManager';
+import type { EmbeddedBaseBundles } from './hooks/useBundleManager';
 import { useMergeRequests } from './hooks/useMergeRequests';
 import { useAttachmentUpload } from './hooks/useAttachmentUpload';
 import { useStudioActions } from './hooks/useStudioActions';
@@ -23,6 +24,7 @@ export type ComergeStudioProps = {
   style?: ViewStyle;
   showFloatingButton?: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
+  embeddedBaseBundles?: EmbeddedBaseBundles;
 };
 
 export function ComergeStudio({
@@ -33,6 +35,7 @@ export function ComergeStudio({
   style,
   showFloatingButton = true,
   studioControlOptions,
+  embeddedBaseBundles,
 }: ComergeStudioProps) {
   const [activeAppId, setActiveAppId] = React.useState(appId);
   const [runtimeAppId, setRuntimeAppId] = React.useState(appId);
@@ -48,7 +51,7 @@ export function ComergeStudio({
   const captureTargetRef = React.useRef<View | null>(null);
 
   return (
-    <StudioBootstrap apiKey={apiKey}>
+    <StudioBootstrap apiKey={apiKey} fallback={<View style={{ flex: 1 }} />}>
       {({ userId }) => (
         <BottomSheetModalProvider>
           <LiquidGlassResetProvider resetTriggers={[appId, activeAppId, runtimeAppId]}>
@@ -67,6 +70,7 @@ export function ComergeStudio({
               style={style}
               showFloatingButton={showFloatingButton}
               studioControlOptions={studioControlOptions}
+              embeddedBaseBundles={embeddedBaseBundles}
             />
           </LiquidGlassResetProvider>
         </BottomSheetModalProvider>
@@ -90,6 +94,7 @@ type InnerProps = {
   style?: ViewStyle;
   showFloatingButton: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
+  embeddedBaseBundles?: EmbeddedBaseBundles;
 };
 
 function ComergeStudioInner({
@@ -107,6 +112,7 @@ function ComergeStudioInner({
   style,
   showFloatingButton,
   studioControlOptions,
+  embeddedBaseBundles,
 }: InnerProps) {
   const { app, loading: appLoading } = useApp(activeAppId);
   const { app: runtimeAppFromHook } = useApp(runtimeAppId, { enabled: runtimeAppId !== activeAppId });
@@ -136,6 +142,7 @@ function ComergeStudioInner({
     base: { appId: runtimeAppId, commitId: runtimeApp?.headCommitId ?? undefined },
     platform,
     canRequestLatest: runtimeApp?.status === 'ready',
+    embeddedBaseBundles,
   });
 
   const sawEditingOnActiveAppRef = React.useRef(false);
@@ -219,6 +226,7 @@ function ComergeStudioInner({
           bundlePath={bundle.bundlePath}
           forcePreparing={showPostEditPreparing}
           renderToken={bundle.renderToken}
+          allowInitialPreparing={!embeddedBaseBundles}
         />
 
         <StudioOverlay

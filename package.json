@@ -57,6 +57,7 @@
     "@gorhom/bottom-sheet": "*",
     "@comergehq/runtime": "^0.1.1",
     "expo": "*",
+    "expo-asset": "*",
     "expo-file-system": "*",
     "expo-haptics": "*",
     "expo-linear-gradient": "*",

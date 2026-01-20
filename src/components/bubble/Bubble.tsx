@@ -23,7 +23,7 @@ import Animated, {
 import { isLiquidGlassSupported } from '@callstack/liquid-glass';
 
 import { DEFAULT_EDGE_PADDING, DEFAULT_OFFSET, DEFAULT_SIZE, ENTER_ROTATION_FROM_DEG, ENTER_SCALE_FROM, PULSE_DURATION_MS } from './constants';
-import type { FloatingDraggableButtonProps } from './types';
+import type { BubbleProps } from './types';
 import { useTheme } from '../../theme';
 import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
 
@@ -53,7 +53,7 @@ function getFinalTranslateY(height: number, size: number, bottomOffset: number) 
   return height - size - bottomOffset;
 }
 
-export function FloatingDraggableButton({
+export function Bubble({
   onPress,
   size = DEFAULT_SIZE,
   disabled = false,
@@ -69,7 +69,7 @@ export function FloatingDraggableButton({
   testID,
   edgePadding = DEFAULT_EDGE_PADDING,
   backgroundColor,
-}: FloatingDraggableButtonProps) {
+}: BubbleProps) {
   const theme = useTheme();
   const { width, height } = useWindowDimensions();
   const isDanger = variant === 'danger';

@@ -1,9 +1,9 @@
-import type { FloatingButtonOffset } from './types';
+import type { BubbleOffset } from './types';
 
 export const DEFAULT_SIZE = 48;
 export const DEFAULT_EDGE_PADDING = 10;
 
-export const DEFAULT_OFFSET: Required<FloatingButtonOffset> = {
+export const DEFAULT_OFFSET: Required<BubbleOffset> = {
   left: 20,
   bottom: 60,
 };

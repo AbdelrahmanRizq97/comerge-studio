@@ -5,7 +5,7 @@ import type { App } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
 import { StudioBottomSheet } from '../../components/studio-sheet/StudioBottomSheet';
 import { StudioSheetPager } from '../../components/studio-sheet/StudioSheetPager';
-import { FloatingDraggableButton } from '../../components/floating-draggable-button/FloatingDraggableButton';
+import { Bubble } from '../../components/bubble/Bubble';
 import { EdgeGlowFrame } from '../../components/overlays/EdgeGlowFrame';
 import { DrawModeOverlay } from '../../components/draw/DrawModeOverlay';
 import { AppCommentsSheet } from '../../components/comments/AppCommentsSheet';
@@ -61,7 +61,7 @@ export type StudioOverlayProps = {
 
   // Navigation callbacks
   onNavigateHome?: () => void;
-  showFloatingButton: boolean;
+  showBubble: boolean;
   studioControlOptions?: StudioControlOptions;
 };
 
@@ -94,7 +94,7 @@ export function StudioOverlay({
   chatShowTypingIndicator,
   onSendChat,
   onNavigateHome,
-  showFloatingButton,
+  showBubble,
   studioControlOptions,
 }: StudioOverlayProps) {
   const theme = useTheme();
@@ -270,8 +270,8 @@ export function StudioOverlay({
         />
       </StudioBottomSheet>
 
-      {showFloatingButton && (
-        <FloatingDraggableButton
+      {showBubble && (
+        <Bubble
           visible={!sheetOpen && !drawing}
           ariaLabel={sheetOpen ? 'Hide studio' : 'Show studio'}
           badgeCount={incomingMergeRequests.length}
@@ -281,7 +281,7 @@ export function StudioOverlay({
           <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
             <MergeIcon width={24} height={24} color={theme.colors.floatingContent} />
           </View>
-        </FloatingDraggableButton>
+        </Bubble>
       )}
 
       <DrawModeOverlay

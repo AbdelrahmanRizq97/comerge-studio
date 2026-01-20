@@ -22,7 +22,7 @@ export type ComergeStudioProps = {
   appKey?: string;
   onNavigateHome?: () => void;
   style?: ViewStyle;
-  showFloatingButton?: boolean;
+  showBubble?: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
   embeddedBaseBundles?: EmbeddedBaseBundles;
 };
@@ -33,7 +33,7 @@ export function ComergeStudio({
   appKey = 'MicroMain',
   onNavigateHome,
   style,
-  showFloatingButton = true,
+  showBubble = true,
   studioControlOptions,
   embeddedBaseBundles,
 }: ComergeStudioProps) {
@@ -68,7 +68,7 @@ export function ComergeStudio({
               onNavigateHome={onNavigateHome}
               captureTargetRef={captureTargetRef}
               style={style}
-              showFloatingButton={showFloatingButton}
+              showBubble={showBubble}
               studioControlOptions={studioControlOptions}
               embeddedBaseBundles={embeddedBaseBundles}
             />
@@ -92,7 +92,7 @@ type InnerProps = {
   onNavigateHome?: () => void;
   captureTargetRef: React.RefObject<View | null>;
   style?: ViewStyle;
-  showFloatingButton: boolean;
+  showBubble: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
   embeddedBaseBundles?: EmbeddedBaseBundles;
 };
@@ -110,7 +110,7 @@ function ComergeStudioInner({
   onNavigateHome,
   captureTargetRef,
   style,
-  showFloatingButton,
+  showBubble,
   studioControlOptions,
   embeddedBaseBundles,
 }: InnerProps) {
@@ -284,7 +284,7 @@ function ComergeStudioInner({
           chatShowTypingIndicator={chatShowTypingIndicator}
           onSendChat={(text, attachments) => actions.sendEdit({ prompt: text, attachments })}
           onNavigateHome={onNavigateHome}
-          showFloatingButton={showFloatingButton}
+          showBubble={showBubble}
           studioControlOptions={studioControlOptions}
         />
       </View>

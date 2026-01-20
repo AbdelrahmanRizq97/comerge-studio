@@ -1,5 +1,5 @@
-export { FloatingDraggableButton } from './floating-draggable-button';
-export type { FloatingDraggableButtonProps, FloatingButtonOffset } from './floating-draggable-button';
+export { Bubble } from './bubble';
+export type { BubbleProps, BubbleOffset } from './bubble';
 
 export * from './icons/StudioIcons';
 

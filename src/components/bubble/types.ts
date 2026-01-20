@@ -1,14 +1,14 @@
 import type * as React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-export type FloatingButtonOffset = {
+export type BubbleOffset = {
   /** Distance from the left edge (in px). */
   left?: number;
   /** Distance from the bottom edge (in px). */
   bottom?: number;
 };
 
-export type FloatingDraggableButtonProps = {
+export type BubbleProps = {
   /**
    * Whether the button should be shown. When toggled, the button animates in/out.
    * The component stays mounted to preserve its last drag position.
@@ -30,7 +30,7 @@ export type FloatingDraggableButtonProps = {
    * Initial placement when it animates in.
    * `left` is measured from the left edge; `bottom` from the bottom edge.
    */
-  offset?: FloatingButtonOffset;
+  offset?: BubbleOffset;
 
   /** Accessible label for screen readers (kept as `ariaLabel` for compatibility). */
   ariaLabel?: string;

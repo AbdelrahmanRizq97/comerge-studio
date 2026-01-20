@@ -18,7 +18,7 @@ import { LiquidGlassResetProvider } from '../components/utils/liquidGlassReset';
 
 export type ComergeStudioProps = {
   appId: string;
-  apiKey: string;
+  clientKey: string;
   appKey?: string;
   onNavigateHome?: () => void;
   style?: ViewStyle;
@@ -29,7 +29,7 @@ export type ComergeStudioProps = {
 
 export function ComergeStudio({
   appId,
-  apiKey,
+  clientKey,
   appKey = 'MicroMain',
   onNavigateHome,
   style,
@@ -51,7 +51,7 @@ export function ComergeStudio({
   const captureTargetRef = React.useRef<View | null>(null);
 
   return (
-    <StudioBootstrap apiKey={apiKey} fallback={<View style={{ flex: 1 }} />}>
+    <StudioBootstrap clientKey={clientKey} fallback={<View style={{ flex: 1 }} />}>
       {({ userId }) => (
         <BottomSheetModalProvider>
           <LiquidGlassResetProvider resetTriggers={[appId, activeAppId, runtimeAppId]}>

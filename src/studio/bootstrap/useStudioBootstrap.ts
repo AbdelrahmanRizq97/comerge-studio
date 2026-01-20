@@ -1,13 +1,13 @@
 import * as React from 'react';
 
-import { setClientApiKey } from '../../core/services/http/public';
+import { setClientKey } from '../../core/services/http/public';
 import { ensureAuthenticatedSession, ensureAnonymousSession } from '../../core/services/supabase/auth';
 import { isSupabaseClientInjected, setSupabaseConfig } from '../../core/services/supabase/client';
 const SUPABASE_URL = 'https://xtfxwbckjpfmqubnsusu.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0Znh3YmNranBmbXF1Ym5zdXN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MDEyMzAsImV4cCI6MjA3NjE3NzIzMH0.dzWGAWrK4CvrmHVHzf8w7JlUZohdap0ZPnLZnABMV8s';
 
 export type UseStudioBootstrapOptions = {
-  apiKey: string;
+  clientKey: string;
 };
 
 export type StudioBootstrapState = {
@@ -28,7 +28,7 @@ export function useStudioBootstrap(options: UseStudioBootstrapOptions): StudioBo
 
     (async () => {
       try {
-        setClientApiKey(options.apiKey);
+        setClientKey(options.clientKey);
         const requireAuth = isSupabaseClientInjected();
         if (!requireAuth) {
           setSupabaseConfig({ url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY });
@@ -47,7 +47,7 @@ export function useStudioBootstrap(options: UseStudioBootstrapOptions): StudioBo
     return () => {
       cancelled = true;
     };
-  }, [options.apiKey]);
+  }, [options.clientKey]);
 
   return state;
 }

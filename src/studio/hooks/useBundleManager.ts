@@ -52,16 +52,6 @@ type BundleSource = {
   commitId?: string | null;
 };
 
-const BUNDLE_DEBUG_PREFIX = '[BUNDLE_DEBUG]';
-
-function logBundleDebug(message: string, details?: Record<string, unknown>) {
-  if (details) {
-    console.log(BUNDLE_DEBUG_PREFIX, message, details);
-  } else {
-    console.log(BUNDLE_DEBUG_PREFIX, message);
-  }
-}
-
 export type UseBundleManagerParams = {
   base: BundleSource;
   platform: BundlePlatform;
@@ -133,7 +123,6 @@ async function ensureDir(path: string) {
 }
 
 async function ensureBundleDir(key: string) {
-  logBundleDebug('ensureBundleDir', { key });
   await ensureDir(bundlesCacheDir());
   await ensureDir(bundleDir(key));
 }
@@ -221,13 +210,6 @@ async function getExistingBundleFileUri(key: string, platform: BundlePlatform): 
   if (next) return next;
   const legacyPath = legacyBundleFileUri(key);
   const legacy = await getExistingNonEmptyFileUri(legacyPath);
-  logBundleDebug('getExistingBundleFileUri', {
-    key,
-    platform,
-    nextPath,
-    legacyPath,
-    resolved: next ?? legacy ?? null,
-  });
   return legacy;
 }
 
@@ -263,10 +245,8 @@ async function hydrateBaseFromEmbeddedAsset(
 ): Promise<{ bundlePath: string; meta?: BaseBundleMeta | null } | null> {
   if (!embedded?.module) return null;
   const key = baseBundleKey(appId, platform);
-  logBundleDebug('hydrateBaseFromEmbeddedAsset:start', { appId, platform, key, hasEmbedded: Boolean(embedded?.module) });
   const existing = await getExistingBundleFileUri(key, platform);
   if (existing) {
-    logBundleDebug('hydrateBaseFromEmbeddedAsset:cache-hit', { appId, platform, key, existing });
     return { bundlePath: existing, meta: embedded.meta ?? null };
   }
   await ensureBundleDir(key);
@@ -283,7 +263,6 @@ async function hydrateBaseFromEmbeddedAsset(
   await FileSystem.copyAsync({ from: sourceUri, to: targetUri });
   const finalUri = await getExistingNonEmptyFileUri(targetUri);
   if (!finalUri) return null;
-  logBundleDebug('hydrateBaseFromEmbeddedAsset:done', { appId, platform, key, bundlePath: finalUri });
   return { bundlePath: finalUri, meta: embedded.meta ?? null };
 }
 
@@ -309,7 +288,6 @@ async function hydrateAssetsFromEmbeddedAsset(
     existingMeta?.checksumSha256 === assetsMeta?.checksumSha256;
   const embeddedMetaMatches = existingMeta?.storageKey?.startsWith('embedded:');
   if (assetsDirExists && checksumMatches && embeddedMetaMatches) {
-    logBundleDebug('hydrateAssetsFromEmbeddedAsset:cache-hit', { appId, platform, key });
     return true;
   }
 
@@ -328,7 +306,7 @@ async function hydrateAssetsFromEmbeddedAsset(
   await FileSystem.copyAsync({ from: sourceUri, to: zipUri });
 
   try {
-    await FileSystem.deleteAsync(assetsDir, { idempotent: true }).catch(() => {});
+    await FileSystem.deleteAsync(assetsDir, { idempotent: true }).catch(() => { });
   } catch {
   }
   await ensureDir(assetsDir);
@@ -339,8 +317,6 @@ async function hydrateAssetsFromEmbeddedAsset(
     storageKey: `embedded:${assetsMeta?.checksumSha256 ?? 'unknown'}`,
     updatedAt: new Date().toISOString(),
   } satisfies AssetsMeta);
-
-  logBundleDebug('hydrateAssetsFromEmbeddedAsset:done', { appId, platform, key });
   return true;
 }
 
@@ -354,7 +330,6 @@ async function safeReplaceFileFromUrl(
   const tmpUri = toBundleFileUri(tmpKeySafe, platform);
   await ensureDir(bundleDir(tmpKeySafe));
   try {
-    logBundleDebug('safeReplaceFileFromUrl:start', { url, targetUri, tmpUri });
     await withRetry(
       async () => {
         await deleteFileIfExists(tmpUri);
@@ -370,7 +345,6 @@ async function safeReplaceFileFromUrl(
 
     const finalOk = await getExistingNonEmptyFileUri(targetUri);
     if (!finalOk) throw new Error('Bundle replacement failed.');
-    logBundleDebug('safeReplaceFileFromUrl:done', { targetUri });
     return targetUri;
   } finally {
     await deleteFileIfExists(tmpUri);
@@ -382,7 +356,6 @@ async function safeReplaceFileFromUrlToPath(url: string, targetUri: string, tmpK
   await ensureDir(tmpDir);
   const tmpUri = `${tmpDir}${safeName(tmpKey)}.tmp`;
   try {
-    logBundleDebug('safeReplaceFileFromUrlToPath:start', { url, targetUri, tmpUri });
     await withRetry(
       async () => {
         await deleteFileIfExists(tmpUri);
@@ -396,7 +369,6 @@ async function safeReplaceFileFromUrlToPath(url: string, targetUri: string, tmpK
     await FileSystem.moveAsync({ from: tmpUri, to: targetUri });
     const finalOk = await getExistingNonEmptyFileUri(targetUri);
     if (!finalOk) throw new Error('File replacement failed.');
-    logBundleDebug('safeReplaceFileFromUrlToPath:done', { targetUri });
     return targetUri;
   } finally {
     await deleteFileIfExists(tmpUri);
@@ -421,14 +393,6 @@ async function ensureAssetsForBundle(
   platform: BundlePlatform
 ): Promise<void> {
   const asset = getMetroAssets(bundle);
-  logBundleDebug('ensureAssetsForBundle:start', {
-    appId,
-    bundleId: bundle.id,
-    platform,
-    assetsCount: bundle.assets?.length ?? 0,
-    assetKind: asset?.kind ?? null,
-    assetStorageKey: asset?.storageKey ?? null,
-  });
   if (!asset?.storageKey) return;
 
   await ensureBundleDir(key);
@@ -439,14 +403,6 @@ async function ensureAssetsForBundle(
   const existingMeta = await readJsonFile<AssetsMeta>(metaUri);
   const assetsDirInfo = await FileSystem.getInfoAsync(assetsDir);
   const assetsDirExists = assetsDirInfo.exists && assetsDirInfo.isDirectory;
-  logBundleDebug('ensureAssetsForBundle:meta', {
-    appId,
-    bundleId: bundle.id,
-    metaUri,
-    existingMeta,
-    assetChecksum: asset.checksumSha256 ?? null,
-    assetsDirExists,
-  });
   if (
     existingMeta?.checksumSha256 &&
     asset.checksumSha256 &&
@@ -454,19 +410,9 @@ async function ensureAssetsForBundle(
     (existingMeta.storageKey === asset.storageKey || existingMeta.storageKey?.startsWith('embedded:')) &&
     assetsDirExists
   ) {
-    logBundleDebug('ensureAssetsForBundle:skip:cache-hit', {
-      appId,
-      bundleId: bundle.id,
-      storageKey: asset.storageKey,
-    });
     return;
   }
 
-  logBundleDebug('ensureAssetsForBundle:download:start', {
-    appId,
-    bundleId: bundle.id,
-    kind: asset.kind,
-  });
   const signed = await withRetry(
     async () => {
       return await bundlesRepository.getSignedAssetsDownloadUrl(appId, bundle.id, {
@@ -478,7 +424,6 @@ async function ensureAssetsForBundle(
   );
 
   const zipUri = `${bundleDir(key)}assets.zip`;
-  logBundleDebug('ensureAssetsForBundle:download:zip', { appId, bundleId: bundle.id, zipUri });
   await safeReplaceFileFromUrlToPath(signed.url, zipUri, `${appId}:${bundle.id}:${platform}:${asset.kind}`);
 
   try {
@@ -486,25 +431,19 @@ async function ensureAssetsForBundle(
   } catch {
 
   }
-  logBundleDebug('ensureAssetsForBundle:extract:start', { appId, bundleId: bundle.id, assetsDir });
   await ensureDir(assetsDir);
   await unzipArchive(zipUri, assetsDir);
-  logBundleDebug('ensureAssetsForBundle:extract:done', { appId, bundleId: bundle.id });
   await writeJsonFile(metaUri, {
     checksumSha256: asset.checksumSha256 ?? null,
     storageKey: asset.storageKey,
     updatedAt: new Date().toISOString(),
   } satisfies AssetsMeta);
-  logBundleDebug('ensureAssetsForBundle:done', { appId, bundleId: bundle.id });
 }
 
 async function unzipArchive(sourceUri: string, destDir: string) {
   try {
-    logBundleDebug('unzipArchive:start', { sourceUri, destDir });
     await unzip(sourceUri, destDir);
-    logBundleDebug('unzipArchive:done', { sourceUri, destDir });
   } catch (e) {
-    logBundleDebug('unzipArchive:error', { sourceUri, destDir, error: String((e as Error)?.message ?? e) });
     throw new Error(
       `Failed to extract assets archive. Ensure 'react-native-zip-archive' is installed in the host app. ${String(
         (e as Error)?.message ?? e
@@ -537,7 +476,6 @@ async function resolveBundlePath(
   mode: 'base' | 'test'
 ): Promise<{ bundlePath: string; label: string; bundle: Bundle }> {
   const { appId, commitId } = src;
-  logBundleDebug('resolveBundlePath:start', { appId, commitId, platform, mode });
   const dir = bundlesCacheDir();
   await ensureDir(dir);
 
@@ -557,13 +495,6 @@ async function resolveBundlePath(
       ? initiate
       : await pollBundle(appId, initiate.id, { timeoutMs: 3 * 60 * 1000, intervalMs: 1200 });
 
-  logBundleDebug('resolveBundlePath:final-bundle', {
-    appId,
-    bundleId: finalBundle.id,
-    status: finalBundle.status,
-    assetsCount: finalBundle.assets?.length ?? 0,
-  });
-
   if (finalBundle.status === 'failed') {
     throw new Error('Bundle build failed.');
   }
@@ -571,27 +502,18 @@ async function resolveBundlePath(
   let bundleWithAssets = finalBundle;
   if (finalBundle.status === 'succeeded' && (!finalBundle.assets || finalBundle.assets.length === 0)) {
     try {
-      logBundleDebug('resolveBundlePath:hydrate-assets', { appId, bundleId: finalBundle.id });
       bundleWithAssets = await bundlesRepository.getById(appId, finalBundle.id);
-      logBundleDebug('resolveBundlePath:hydrated-assets', {
-        appId,
-        bundleId: finalBundle.id,
-        assetsCount: bundleWithAssets.assets?.length ?? 0,
-      });
     } catch {
-      logBundleDebug('resolveBundlePath:hydrate-assets:failed', { appId, bundleId: finalBundle.id });
       bundleWithAssets = finalBundle;
     }
   }
 
-  logBundleDebug('resolveBundlePath:getSignedDownloadUrl:start', { appId, bundleId: finalBundle.id });
   const signed = await withRetry(
     async () => {
       return await bundlesRepository.getSignedDownloadUrl(appId, finalBundle.id, { redirect: false });
     },
     { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
   );
-  logBundleDebug('resolveBundlePath:getSignedDownloadUrl:done', { appId, bundleId: finalBundle.id });
   const key =
     mode === 'base'
       ? baseBundleKey(appId, platform)
@@ -606,13 +528,11 @@ async function resolveBundlePath(
         platform
       )
       : await downloadIfMissing(signed.url, toBundleFileUri(key, platform));
-  logBundleDebug('resolveBundlePath:bundle-downloaded', { appId, bundleId: finalBundle.id, bundlePath });
   try {
     await ensureAssetsForBundle(appId, bundleWithAssets, key, platform);
   } catch {
 
   }
-  logBundleDebug('resolveBundlePath:done', { appId, bundleId: finalBundle.id });
   return { bundlePath, label: 'Ready', bundle: bundleWithAssets };
 }
 
@@ -753,7 +673,6 @@ export function useBundleManager({
     setLoadingMode(mode);
     setError(null);
     setStatusLabel(mode === 'test' ? 'Loading test bundle…' : 'Loading latest build…');
-    logBundleDebug('load:start', { appId: src.appId, commitId: src.commitId, mode, opId });
 
     if (mode === 'base') {
       void activateCachedBase(src.appId);
@@ -764,13 +683,6 @@ export function useBundleManager({
       if (mode === 'base' && opId !== baseOpIdRef.current) return;
       if (mode === 'test' && opId !== testOpIdRef.current) return;
       setBundlePath(path);
-      logBundleDebug('load:bundle-ready', {
-        appId: src.appId,
-        bundleId: bundle.id,
-        mode,
-        bundlePath: path,
-        assetsCount: bundle.assets?.length ?? 0,
-      });
       const fingerprint = bundle.checksumSha256 ?? `id:${bundle.id}`;
 
       // If we started by rendering a base bundle from disk and the network "latest" bundle is the same,
@@ -816,7 +728,6 @@ export function useBundleManager({
       if (mode === 'base' && opId !== baseOpIdRef.current) return;
       if (mode === 'test' && opId !== testOpIdRef.current) return;
       const msg = e instanceof Error ? e.message : String(e);
-      logBundleDebug('load:error', { appId: src.appId, mode, error: msg });
       setError(msg);
       setStatusLabel(null);
     } finally {
@@ -825,7 +736,6 @@ export function useBundleManager({
       setLoading(false);
       setLoadingMode(null);
       if (activeLoadModeRef.current === mode) activeLoadModeRef.current = null;
-      logBundleDebug('load:done', { appId: src.appId, mode, opId });
     }
   }, [activateCachedBase, platform]);
 

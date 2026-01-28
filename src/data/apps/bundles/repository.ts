@@ -7,6 +7,11 @@ export interface BundlesRepository {
   initiate(appId: string, payload: InitiateBundleRequest): Promise<Bundle>;
   getById(appId: string, bundleId: string): Promise<Bundle>;
   getSignedDownloadUrl(appId: string, bundleId: string, options?: { redirect?: boolean }): Promise<{ url: string; redirect: boolean }>;
+  getSignedAssetsDownloadUrl(
+    appId: string,
+    bundleId: string,
+    options?: { redirect?: boolean; kind?: string }
+  ): Promise<{ url: string; redirect: boolean }>;
 }
 
 class BundlesRepositoryImpl extends BaseRepository implements BundlesRepository {
@@ -26,6 +31,15 @@ class BundlesRepositoryImpl extends BaseRepository implements BundlesRepository 
 
   async getSignedDownloadUrl(appId: string, bundleId: string, options?: { redirect?: boolean }): Promise<{ url: string; redirect: boolean }> {
     const res = await this.remote.getSignedDownloadUrl(appId, bundleId, options);
+    return this.unwrapOrThrow(res);
+  }
+
+  async getSignedAssetsDownloadUrl(
+    appId: string,
+    bundleId: string,
+    options?: { redirect?: boolean; kind?: string }
+  ): Promise<{ url: string; redirect: boolean }> {
+    const res = await this.remote.getSignedAssetsDownloadUrl(appId, bundleId, options);
     return this.unwrapOrThrow(res);
   }
 }

@@ -68,6 +68,7 @@
     "react-native": "*",
     "react-native-safe-area-context": "*",
     "react-native-svg": "*",
+    "react-native-zip-archive": "*",
     "react-native-view-shot": "*"
   },
   "peerDependenciesMeta": {}

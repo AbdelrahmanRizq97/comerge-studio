@@ -11,6 +11,11 @@ export interface BundlesRemoteDataSource {
     bundleId: string,
     options?: { redirect?: boolean }
   ): Promise<ServiceResponse<{ url: string; redirect: boolean }>>;
+  getSignedAssetsDownloadUrl(
+    appId: string,
+    bundleId: string,
+    options?: { redirect?: boolean; kind?: string }
+  ): Promise<ServiceResponse<{ url: string; redirect: boolean }>>;
 }
 
 class BundlesRemoteDataSourceImpl extends BaseRemote implements BundlesRemoteDataSource {
@@ -37,6 +42,18 @@ class BundlesRemoteDataSourceImpl extends BaseRemote implements BundlesRemoteDat
     const { data } = await api.get<ServiceResponse<{ url: string; redirect: boolean }>>(
       `/v1/apps/${encodeURIComponent(appId)}/bundles/${encodeURIComponent(bundleId)}/download`,
       { params: { redirect: options?.redirect ?? false } }
+    );
+    return data;
+  }
+
+  async getSignedAssetsDownloadUrl(
+    appId: string,
+    bundleId: string,
+    options?: { redirect?: boolean; kind?: string }
+  ): Promise<ServiceResponse<{ url: string; redirect: boolean }>> {
+    const { data } = await api.get<ServiceResponse<{ url: string; redirect: boolean }>>(
+      `/v1/apps/${encodeURIComponent(appId)}/bundles/${encodeURIComponent(bundleId)}/assets/download`,
+      { params: { redirect: options?.redirect ?? false, kind: options?.kind } }
     );
     return data;
   }

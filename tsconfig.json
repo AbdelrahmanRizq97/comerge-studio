@@ -36,6 +36,8 @@
       "lucide-react-native/*": ["../bld-playground-expo/node_modules/lucide-react-native/*"],
       "@comergehq/studio-control": ["../comerge-studio-control/src"],
       "@comergehq/studio-control/*": ["../comerge-studio-control/src/*"],
+      "react-native-zip-archive": ["../bld-playground-expo/node_modules/react-native-zip-archive"],
+      "react-native-zip-archive/*": ["../bld-playground-expo/node_modules/react-native-zip-archive/*"],
     },
     "typeRoots": ["../bld-playground-expo/node_modules/@types"]
   },

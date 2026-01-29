@@ -58,7 +58,6 @@ export function useStudioActions({
       setSending(true);
       setError(null);
       try {
-        onEditStart?.();
         let targetApp = app;
 
         if (shouldForkOnEdit) {
@@ -73,6 +72,7 @@ export function useStudioActions({
 
         const threadId = targetApp.threadId;
         if (!threadId) throw new Error('No thread available for this app.');
+        onEditStart?.();
 
         let attachmentMetas: AttachmentMeta[] | undefined;
         if (attachments && attachments.length > 0 && uploadAttachments) {

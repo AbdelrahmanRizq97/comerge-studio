@@ -83,9 +83,8 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   const foregroundSignal = useForegroundSignal(Boolean(threadId));
 
   const upsertSorted = React.useCallback((prev: Message[], m: Message) => {
-    const include = !isQueuedHiddenMessage(m);
     const next = prev.filter((x) => x.id !== m.id);
-    if (include) next.push(m);
+    next.push(m);
     next.sort(compareMessages);
     return next;
   }, []);
@@ -101,7 +100,7 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     try {
       const list = await messagesRepository.list(threadId);
       if (activeRequestIdRef.current !== requestId) return;
-      setRaw([...list].filter((m) => !isQueuedHiddenMessage(m)).sort(compareMessages));
+      setRaw([...list].sort(compareMessages));
     } catch (e) {
       if (activeRequestIdRef.current !== requestId) return;
       setError(e instanceof Error ? e : new Error(String(e)));
@@ -131,7 +130,11 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     void refetch();
   }, [foregroundSignal, refetch, threadId]);
 
-  const messages = React.useMemo(() => raw.map(mapMessageToChatMessage), [raw]);
+  const messages = React.useMemo(() => {
+    const visible = raw.filter((m) => !isQueuedHiddenMessage(m));
+    const resolved = visible.length > 0 ? visible : raw;
+    return resolved.map(mapMessageToChatMessage);
+  }, [raw]);
 
   return { raw, messages, loading, error, refetch };
 }

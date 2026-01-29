@@ -114,7 +114,9 @@ export function StudioOverlay({
   const [commentsCount, setCommentsCount] = React.useState<number | null>(null);
 
   const threadId = app?.threadId ?? null;
-  const disableOptimistic = Boolean(chatQueueItems && chatQueueItems.length > 0) || app?.status === 'editing';
+  const isForking = chatForking || app?.status === 'forking';
+  const queueItemsForChat = isForking ? [] : chatQueueItems;
+  const disableOptimistic = Boolean(queueItemsForChat && queueItemsForChat.length > 0) || app?.status === 'editing';
   const optimistic = useOptimisticChatMessages({
     threadId,
     shouldForkOnEdit,
@@ -271,7 +273,7 @@ export function StudioOverlay({
               onNavigateHome={onNavigateHome}
               onStartDraw={startDraw}
               onSend={optimistic.onSend}
-              queueItems={chatQueueItems}
+              queueItems={queueItemsForChat}
               onRemoveQueueItem={onRemoveQueueItem}
             />
           }

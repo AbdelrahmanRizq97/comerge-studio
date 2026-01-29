@@ -15,6 +15,9 @@ export type UseStudioActionsParams = {
    * Called when we fork and should switch to the new app.
    */
   onForkedApp?: (appId: string, opts?: { keepRenderingAppId?: string }) => void;
+  onEditStart?: () => void;
+  onEditQueued?: (info: { queueItemId?: string | null; queuePosition?: number | null }) => void;
+  onEditFinished?: () => void;
   /**
    * Upload function used to convert attachments.
    */
@@ -34,6 +37,9 @@ export function useStudioActions({
   userId,
   app,
   onForkedApp,
+  onEditStart,
+  onEditQueued,
+  onEditFinished,
   uploadAttachments,
 }: UseStudioActionsParams): UseStudioActionsResult {
   const [forking, setForking] = React.useState(false);
@@ -52,6 +58,7 @@ export function useStudioActions({
       setSending(true);
       setError(null);
       try {
+        onEditStart?.();
         let targetApp = app;
 
         if (shouldForkOnEdit) {
@@ -72,11 +79,15 @@ export function useStudioActions({
           attachmentMetas = await uploadAttachments({ threadId, appId: targetApp.id, dataUrls: attachments });
         }
 
-        await agentRepository.editApp({
+        const editResult = await agentRepository.editApp({
           prompt,
           thread_id: threadId,
           app_id: targetApp.id,
           attachments: attachmentMetas && attachmentMetas.length > 0 ? attachmentMetas : undefined,
+        });
+        onEditQueued?.({
+          queueItemId: editResult.queueItemId ?? null,
+          queuePosition: editResult.queuePosition ?? null,
         });
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
@@ -85,9 +96,10 @@ export function useStudioActions({
       } finally {
         setForking(false);
         setSending(false);
+        onEditFinished?.();
       }
     },
-    [app, onForkedApp, sending, shouldForkOnEdit, uploadAttachments, userId]
+    [app, onEditFinished, onEditQueued, onEditStart, onForkedApp, sending, shouldForkOnEdit, uploadAttachments, userId]
   );
 
   return { isOwner, shouldForkOnEdit, forking, sending, error, sendEdit };

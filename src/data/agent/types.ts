@@ -22,6 +22,7 @@ export type AgentEditAppResult = {
   threadId: string;
   appId: string;
   queueItemId?: string | null;
+  queuePosition?: number | null;
 };
 
 import type { AttachmentMeta } from '../../data/attachment/types';

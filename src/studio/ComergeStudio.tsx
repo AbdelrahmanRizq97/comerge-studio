@@ -178,6 +178,15 @@ function ComergeStudioInner({
   const thread = useThreadMessages(threadId);
   const editQueue = useEditQueue(activeAppId);
   const editQueueActions = useEditQueueActions(activeAppId);
+  const [lastEditQueueInfo, setLastEditQueueInfo] = React.useState<{
+    queueItemId?: string | null;
+    queuePosition?: number | null;
+  } | null>(null);
+  const lastEditQueueInfoRef = React.useRef<{
+    queueItemId?: string | null;
+    queuePosition?: number | null;
+  } | null>(null);
+  const [suppressQueueUntilResponse, setSuppressQueueUntilResponse] = React.useState(false);
 
   const mergeRequests = useMergeRequests({ appId: activeAppId });
   const hasOpenOutgoingMr = React.useMemo(() => {
@@ -190,6 +199,14 @@ function ComergeStudioInner({
   }, [mergeRequests.lists.incoming, userId]);
 
   const uploader = useAttachmentUpload();
+
+  const updateLastEditQueueInfo = React.useCallback(
+    (info: { queueItemId?: string | null; queuePosition?: number | null } | null) => {
+      lastEditQueueInfoRef.current = info;
+      setLastEditQueueInfo(info);
+    },
+    []
+  );
 
   const actions = useStudioActions({
     userId,
@@ -206,6 +223,22 @@ function ComergeStudioInner({
       }
     },
     uploadAttachments: uploader.uploadBase64Images,
+    onEditStart: () => {
+      if (editQueue.items.length === 0) {
+        setSuppressQueueUntilResponse(true);
+      }
+    },
+    onEditQueued: (info) => {
+      updateLastEditQueueInfo(info);
+      if (info.queuePosition !== 1) {
+        setSuppressQueueUntilResponse(false);
+      }
+    },
+    onEditFinished: () => {
+      if (lastEditQueueInfoRef.current?.queuePosition !== 1) {
+        setSuppressQueueUntilResponse(false);
+      }
+    },
   });
 
   const chatSendDisabled = false;
@@ -220,6 +253,36 @@ function ComergeStudioInner({
     const payloadType = typeof (last.payload as any)?.type === 'string' ? String((last.payload as any).type) : undefined;
     return payloadType !== 'outcome';
   }, [thread.raw]);
+
+  React.useEffect(() => {
+    updateLastEditQueueInfo(null);
+    setSuppressQueueUntilResponse(false);
+  }, [activeAppId, updateLastEditQueueInfo]);
+
+  React.useEffect(() => {
+    if (!lastEditQueueInfo?.queueItemId) return;
+    const stillPresent = editQueue.items.some((item) => item.id === lastEditQueueInfo.queueItemId);
+    if (!stillPresent) {
+      updateLastEditQueueInfo(null);
+      setSuppressQueueUntilResponse(false);
+    }
+  }, [editQueue.items, lastEditQueueInfo?.queueItemId]);
+
+  const chatQueueItems = React.useMemo(() => {
+    if (suppressQueueUntilResponse && editQueue.items.length <= 1) {
+      return [];
+    }
+    if (!lastEditQueueInfo || lastEditQueueInfo.queuePosition !== 1 || !lastEditQueueInfo.queueItemId) {
+      return editQueue.items;
+    }
+    if (
+      editQueue.items.length === 1 &&
+      editQueue.items[0]?.id === lastEditQueueInfo.queueItemId
+    ) {
+      return [];
+    }
+    return editQueue.items;
+  }, [editQueue.items, lastEditQueueInfo, suppressQueueUntilResponse]);
 
   return (
       <View style={[{ flex: 1 }, style]}>
@@ -286,7 +349,7 @@ function ComergeStudioInner({
           chatSending={actions.sending}
           chatShowTypingIndicator={chatShowTypingIndicator}
           onSendChat={(text, attachments) => actions.sendEdit({ prompt: text, attachments })}
-          chatQueueItems={editQueue.items}
+          chatQueueItems={chatQueueItems}
           onRemoveQueueItem={(id) => editQueueActions.cancel(id)}
           onNavigateHome={onNavigateHome}
           showBubble={showBubble}

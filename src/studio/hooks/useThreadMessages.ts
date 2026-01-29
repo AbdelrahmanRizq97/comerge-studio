@@ -29,6 +29,40 @@ function extractMeta(payload: unknown): ChatMessage['meta'] {
   };
 }
 
+function getPayloadMeta(payload: Message['payload']): Record<string, unknown> | null {
+  const meta = (payload as any)?.meta;
+  if (!meta || typeof meta !== 'object') return null;
+  return meta as Record<string, unknown>;
+}
+
+function isQueuedHiddenMessage(m: Message): boolean {
+  if (m.authorType !== 'human') return false;
+  const meta = getPayloadMeta(m.payload);
+  return meta?.visibility === 'queued';
+}
+
+function toEpochMs(value: unknown): number {
+  if (value == null) return 0;
+  if (typeof value === 'number') return value;
+  if (value instanceof Date) return value.getTime();
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getEffectiveSortMs(m: Message): number {
+  const meta = getPayloadMeta(m.payload);
+  const runStartedAt = meta?.runStartedAt;
+  const runMs = toEpochMs(runStartedAt);
+  return runMs > 0 ? runMs : toEpochMs(m.createdAt);
+}
+
+function compareMessages(a: Message, b: Message): number {
+  const aMs = getEffectiveSortMs(a);
+  const bMs = getEffectiveSortMs(b);
+  if (aMs !== bMs) return aMs - bMs;
+  return String(a.createdAt).localeCompare(String(b.createdAt));
+}
+
 function mapMessageToChatMessage(m: Message): ChatMessage {
   const kind = typeof (m.payload as any)?.type === 'string' ? String((m.payload as any).type) : null;
   return {
@@ -49,9 +83,10 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   const foregroundSignal = useForegroundSignal(Boolean(threadId));
 
   const upsertSorted = React.useCallback((prev: Message[], m: Message) => {
-    const next = prev.some((x) => x.id === m.id) ? prev.map((x) => (x.id === m.id ? m : x)) : [...prev, m];
-    // Keep ordering stable for the UI (chat scrolling is very sensitive to reorders).
-    next.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+    const include = !isQueuedHiddenMessage(m);
+    const next = prev.filter((x) => x.id !== m.id);
+    if (include) next.push(m);
+    next.sort(compareMessages);
     return next;
   }, []);
 
@@ -66,8 +101,7 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     try {
       const list = await messagesRepository.list(threadId);
       if (activeRequestIdRef.current !== requestId) return;
-      // Ensure stable ordering for downstream scrolling behavior.
-      setRaw([...list].sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt))));
+      setRaw([...list].filter((m) => !isQueuedHiddenMessage(m)).sort(compareMessages));
     } catch (e) {
       if (activeRequestIdRef.current !== requestId) return;
       setError(e instanceof Error ? e : new Error(String(e)));

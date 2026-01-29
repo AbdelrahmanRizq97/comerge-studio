@@ -11,10 +11,11 @@ import type { EmbeddedBaseBundles } from './hooks/useBundleManager';
 import { useMergeRequests } from './hooks/useMergeRequests';
 import { useAttachmentUpload } from './hooks/useAttachmentUpload';
 import { useStudioActions } from './hooks/useStudioActions';
-import { hasNoOutcomeAfterLastHuman } from './lib/chat';
 import { RuntimeRenderer } from './ui/RuntimeRenderer';
 import { StudioOverlay } from './ui/StudioOverlay';
 import { LiquidGlassResetProvider } from '../components/utils/liquidGlassReset';
+import { useEditQueue } from './hooks/useEditQueue';
+import { useEditQueueActions } from './hooks/useEditQueueActions';
 
 export type ComergeStudioProps = {
   appId: string;
@@ -175,6 +176,8 @@ function ComergeStudioInner({
 
   const threadId = app?.threadId ?? '';
   const thread = useThreadMessages(threadId);
+  const editQueue = useEditQueue(activeAppId);
+  const editQueueActions = useEditQueueActions(activeAppId);
 
   const mergeRequests = useMergeRequests({ appId: activeAppId });
   const hasOpenOutgoingMr = React.useMemo(() => {
@@ -205,7 +208,7 @@ function ComergeStudioInner({
     uploadAttachments: uploader.uploadBase64Images,
   });
 
-  const chatSendDisabled = hasNoOutcomeAfterLastHuman(thread.raw);
+  const chatSendDisabled = false;
 
   const [processingMrId, setProcessingMrId] = React.useState<string | null>(null);
   const [testingMrId, setTestingMrId] = React.useState<string | null>(null);
@@ -283,6 +286,8 @@ function ComergeStudioInner({
           chatSending={actions.sending}
           chatShowTypingIndicator={chatShowTypingIndicator}
           onSendChat={(text, attachments) => actions.sendEdit({ prompt: text, attachments })}
+          chatQueueItems={editQueue.items}
+          onRemoveQueueItem={(id) => editQueueActions.cancel(id)}
           onNavigateHome={onNavigateHome}
           showBubble={showBubble}
           studioControlOptions={studioControlOptions}

@@ -10,6 +10,8 @@ import { StudioSheetHeaderIconButton } from '../../components/studio-sheet/Studi
 import { IconArrowDown, IconBack, IconClose, IconDraw, IconHome } from '../../components/icons/StudioIcons';
 import { Text } from '../../components/primitives/Text';
 import type { ChatMessage } from '../../components/models/types';
+import type { EditQueueItem } from '../../data/apps/edit-queue/types';
+import { ChatQueue } from '../../components/chat/ChatQueue';
 
 export type ChatPanelProps = {
   title?: string;
@@ -29,6 +31,8 @@ export type ChatPanelProps = {
   onNavigateHome?: () => void;
   onStartDraw?: () => void;
   onSend: (text: string, attachments?: string[]) => void | Promise<void>;
+  queueItems?: EditQueueItem[];
+  onRemoveQueueItem?: (id: string) => void;
 };
 
 export function ChatPanel({
@@ -49,6 +53,8 @@ export function ChatPanel({
   onNavigateHome,
   onStartDraw,
   onSend,
+  queueItems = [],
+  onRemoveQueueItem,
 }: ChatPanelProps) {
   const listRef = React.useRef<ChatMessageListRef | null>(null);
   const [nearBottom, setNearBottom] = React.useState(true);
@@ -123,12 +129,17 @@ export function ChatPanel({
     );
   }
 
+  const queueTop = queueItems.length > 0 ? (
+    <ChatQueue items={queueItems} onRemove={onRemoveQueueItem} />
+  ) : null;
+
   return (
     <ChatPage
       header={header}
       messages={messages}
       showTypingIndicator={showTypingIndicator}
       topBanner={topBanner}
+      composerTop={queueTop}
       composerHorizontalPadding={0}
       listRef={listRef}
       onNearBottomChange={setNearBottom}

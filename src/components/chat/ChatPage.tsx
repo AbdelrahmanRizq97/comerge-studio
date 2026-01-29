@@ -13,6 +13,7 @@ export type ChatPageProps = {
   showTypingIndicator?: boolean;
   renderMessageContent?: ChatMessageListProps['renderMessageContent'];
   topBanner?: React.ReactNode;
+  composerTop?: React.ReactNode;
   composer: Omit<ChatComposerProps, 'attachments'> & {
     attachments?: ChatComposerProps['attachments'];
   };
@@ -32,6 +33,7 @@ export function ChatPage({
   showTypingIndicator,
   renderMessageContent,
   topBanner,
+  composerTop,
   composer,
   overlay,
   style,
@@ -42,6 +44,7 @@ export function ChatPage({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [composerHeight, setComposerHeight] = React.useState(0);
+  const [composerTopHeight, setComposerTopHeight] = React.useState(0);
   const [keyboardVisible, setKeyboardVisible] = React.useState(false);
 
   React.useEffect(() => {
@@ -55,8 +58,9 @@ export function ChatPage({
   }, []);
 
   const footerBottomPadding = Platform.OS === 'ios' ? (keyboardVisible ? 0 : insets.bottom) : insets.bottom + 10;
-  const overlayBottom = composerHeight + footerBottomPadding + theme.spacing.lg;
-  const bottomInset = composerHeight + footerBottomPadding + theme.spacing.xl;
+  const totalComposerHeight = composerHeight + composerTopHeight;
+  const overlayBottom = totalComposerHeight + footerBottomPadding + theme.spacing.lg;
+  const bottomInset = totalComposerHeight + footerBottomPadding + theme.spacing.xl;
 
   const resolvedOverlay = React.useMemo(() => {
     if (!overlay) return null;
@@ -66,6 +70,11 @@ export function ChatPage({
       style: [prevStyle, { bottom: overlayBottom }],
     });
   }, [overlay, overlayBottom]);
+
+  React.useEffect(() => {
+    if (composerTop) return;
+    setComposerTopHeight(0);
+  }, [composerTop]);
   return (
     <View style={[{ flex: 1 }, style]}>
       {header ? <View>{header}</View> : null}
@@ -99,6 +108,14 @@ export function ChatPage({
             paddingBottom: footerBottomPadding,
           }}
         >
+          {composerTop ? (
+            <View
+              style={{ marginBottom: theme.spacing.sm }}
+              onLayout={(e) => setComposerTopHeight(e.nativeEvent.layout.height)}
+            >
+              {composerTop}
+            </View>
+          ) : null}
           <ChatComposer
             {...composer}
             attachments={composer.attachments ?? []}

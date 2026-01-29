@@ -21,7 +21,7 @@ export type AgentCreateAppResult = {
 export type AgentEditAppResult = {
   threadId: string;
   appId: string;
-  sandboxExternalId: string;
+  queueItemId?: string | null;
 };
 
 import type { AttachmentMeta } from '../../data/attachment/types';

@@ -58,6 +58,8 @@ export type StudioOverlayProps = {
   chatSending?: boolean;
   chatShowTypingIndicator?: boolean;
   onSendChat: (text: string, attachments?: string[]) => void | Promise<void>;
+  chatQueueItems?: import('../../data/apps/edit-queue/types').EditQueueItem[];
+  onRemoveQueueItem?: (id: string) => void;
 
   // Navigation callbacks
   onNavigateHome?: () => void;
@@ -93,6 +95,8 @@ export function StudioOverlay({
   chatSending,
   chatShowTypingIndicator,
   onSendChat,
+  chatQueueItems,
+  onRemoveQueueItem,
   onNavigateHome,
   showBubble,
   studioControlOptions,
@@ -110,9 +114,11 @@ export function StudioOverlay({
   const [commentsCount, setCommentsCount] = React.useState<number | null>(null);
 
   const threadId = app?.threadId ?? null;
+  const disableOptimistic = Boolean(chatQueueItems && chatQueueItems.length > 0) || app?.status === 'editing';
   const optimistic = useOptimisticChatMessages({
     threadId,
     shouldForkOnEdit,
+    disableOptimistic,
     chatMessages,
     onSendChat,
   });
@@ -265,6 +271,8 @@ export function StudioOverlay({
               onNavigateHome={onNavigateHome}
               onStartDraw={startDraw}
               onSend={optimistic.onSend}
+              queueItems={chatQueueItems}
+              onRemoveQueueItem={onRemoveQueueItem}
             />
           }
         />

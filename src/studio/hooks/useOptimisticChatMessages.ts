@@ -5,6 +5,7 @@ import type { ChatMessage } from '../../components/models/types';
 export type UseOptimisticChatMessagesParams = {
   threadId: string | null;
   shouldForkOnEdit: boolean;
+  disableOptimistic?: boolean;
   chatMessages: ChatMessage[];
   onSendChat: (text: string, attachments?: string[]) => void | Promise<void>;
 };
@@ -63,6 +64,7 @@ function isOptimisticResolvedByServer(chatMessages: ChatMessage[], o: Optimistic
 export function useOptimisticChatMessages({
   threadId,
   shouldForkOnEdit,
+  disableOptimistic = false,
   chatMessages,
   onSendChat,
 }: UseOptimisticChatMessagesParams): UseOptimisticChatMessagesResult {
@@ -105,7 +107,7 @@ export function useOptimisticChatMessages({
 
   const onSend = React.useCallback(
     async (text: string, attachments?: string[]) => {
-      if (shouldForkOnEdit) {
+      if (shouldForkOnEdit || disableOptimistic) {
         await onSendChat(text, attachments);
         return;
       }
@@ -120,7 +122,7 @@ export function useOptimisticChatMessages({
         setOptimisticChat((prev) => prev.map((m) => (m.id === id ? { ...m, failed: true } : m)));
       });
     },
-    [chatMessages, onSendChat, shouldForkOnEdit]
+    [chatMessages, disableOptimistic, onSendChat, shouldForkOnEdit]
   );
 
   return { messages, onSend };

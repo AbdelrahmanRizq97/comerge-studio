@@ -1,8 +1,9 @@
 import * as React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, Share, View } from 'react-native';
 
 import type { App } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
+import { log } from '../../core/logger';
 import { PreviewPage } from '../../components/preview/PreviewPage';
 import { Text } from '../../components/primitives/Text';
 import { PreviewPanelHeader } from './preview-panel/PreviewPanelHeader';
@@ -59,6 +60,29 @@ export function PreviewPanel({
   onOpenComments,
   commentCountOverride,
 }: PreviewPanelProps) {
+  const handleShare = React.useCallback(async () => {
+    if (!app || !app.isPublic) return;
+    const shareUrl = `https://comerge.ai/app/${app.id}`;
+    const message = app.name ? `${app.name} on Comerge\n${shareUrl}` : `Check out this app on Comerge\n${shareUrl}`;
+    try {
+      const title = app.name ?? 'Comerge app';
+      const payload =
+        Platform.OS === 'ios'
+          ? {
+              title,
+              message,
+            }
+          : {
+              title,
+              message,
+              url: shareUrl,
+            };
+      await Share.share(payload);
+    } catch (error) {
+      log.warn('PreviewPanel share failed', error);
+    }
+  }, [app]);
+
   const { imageUrl, imageLoaded, setImageLoaded, creator, insights, stats, showProcessing, canSubmitMergeRequest } = usePreviewPanelData({
     app,
     isOwner,
@@ -67,7 +91,16 @@ export function PreviewPanel({
     commentCountOverride,
   });
 
-  const header = <PreviewPanelHeader isOwner={isOwner} onClose={onClose} onNavigateHome={onNavigateHome} onGoToChat={onGoToChat} />;
+  const header = (
+    <PreviewPanelHeader
+      isOwner={isOwner}
+      isPublic={Boolean(app?.isPublic)}
+      onClose={onClose}
+      onNavigateHome={onNavigateHome}
+      onGoToChat={onGoToChat}
+      onShare={handleShare}
+    />
+  );
 
   if (loading || !app) {
     return (

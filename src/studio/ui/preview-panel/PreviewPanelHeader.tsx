@@ -3,16 +3,25 @@ import { View } from 'react-native';
 
 import { StudioSheetHeader } from '../../../components/studio-sheet/StudioSheetHeader';
 import { StudioSheetHeaderIconButton } from '../../../components/studio-sheet/StudioSheetHeaderIconButton';
-import { IconChat, IconClose, IconHome } from '../../../components/icons/StudioIcons';
+import { IconChat, IconClose, IconHome, IconShare } from '../../../components/icons/StudioIcons';
 
 export type PreviewPanelHeaderProps = {
   isOwner: boolean;
+  isPublic: boolean;
   onClose: () => void;
   onNavigateHome?: () => void;
   onGoToChat: () => void;
+  onShare?: () => void;
 };
 
-export function PreviewPanelHeader({ isOwner, onClose, onNavigateHome, onGoToChat }: PreviewPanelHeaderProps) {
+export function PreviewPanelHeader({
+  isOwner,
+  isPublic,
+  onClose,
+  onNavigateHome,
+  onGoToChat,
+  onShare,
+}: PreviewPanelHeaderProps) {
   return (
     <StudioSheetHeader
       left={
@@ -34,6 +43,17 @@ export function PreviewPanelHeader({ isOwner, onClose, onNavigateHome, onGoToCha
               style={{ marginRight: 8 }}
             >
               <IconChat size={20} colorToken="onPrimary" />
+            </StudioSheetHeaderIconButton>
+          ) : null}
+          {isPublic && onShare ? (
+            <StudioSheetHeaderIconButton
+              onPress={onShare}
+              accessibilityLabel="Share"
+              intent="primary"
+              appearance="glass"
+              style={{ marginRight: 8 }}
+            >
+              <IconShare size={20} colorToken="onPrimary" />
             </StudioSheetHeaderIconButton>
           ) : null}
           <StudioSheetHeaderIconButton onPress={onClose} accessibilityLabel="Close" appearance="glass" intent="primary">

@@ -12,6 +12,7 @@ import {
   Send,
   X,
   Check,
+  Share2,
 } from 'lucide-react-native';
 
 import { useTheme } from '../../theme';
@@ -62,5 +63,6 @@ export const IconSend = makeIcon(Send);
 export const IconPlay = makeIcon(Play);
 export const IconArrowDown = makeIcon(ArrowDown);
 export const IconApprove = makeIcon(Check);
+export const IconShare = makeIcon(Share2);
 
 

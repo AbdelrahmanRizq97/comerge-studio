@@ -164,9 +164,9 @@ export function PreviewCollaborateSection({
                     Promise.resolve(onSyncUpstream())
                       .then((result) => {
                         if (result?.status === 'up-to-date') {
-                          Alert.alert('Up to date', 'Your fork already includes the latest upstream changes.');
+                          Alert.alert('Up to date', 'Your remix already includes the latest upstream changes.');
                         } else {
-                          Alert.alert('Sync started', 'Upstream changes are being merged into your fork.');
+                          Alert.alert('Sync started', 'Upstream changes are being merged into your remix.');
                         }
                       })
                       .catch(() => {

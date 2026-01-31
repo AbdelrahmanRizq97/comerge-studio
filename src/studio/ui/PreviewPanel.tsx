@@ -62,7 +62,7 @@ export function PreviewPanel({
 }: PreviewPanelProps) {
   const handleShare = React.useCallback(async () => {
     if (!app || !app.isPublic) return;
-    const shareUrl = `https://comerge.ai/app/${app.id}`;
+    const shareUrl = `https://remix.one/app/${app.id}`;
     const message = app.name ? `${app.name} on Comerge\n${shareUrl}` : `Check out this app on Comerge\n${shareUrl}`;
     try {
       const title = app.name ?? 'Comerge app';

@@ -16,6 +16,8 @@ import { StudioOverlay } from './ui/StudioOverlay';
 import { LiquidGlassResetProvider } from '../components/utils/liquidGlassReset';
 import { useEditQueue } from './hooks/useEditQueue';
 import { useEditQueueActions } from './hooks/useEditQueueActions';
+import { appsRepository } from '../data/apps/repository';
+import type { SyncUpstreamStatus } from '../data/apps/types';
 
 export type ComergeStudioProps = {
   appId: string;
@@ -245,6 +247,8 @@ function ComergeStudioInner({
 
   const [processingMrId, setProcessingMrId] = React.useState<string | null>(null);
   const [testingMrId, setTestingMrId] = React.useState<string | null>(null);
+  const [syncingUpstream, setSyncingUpstream] = React.useState(false);
+  const [upstreamSyncStatus, setUpstreamSyncStatus] = React.useState<SyncUpstreamStatus | null>(null);
 
   // Show typing dots when the last message isn't an outcome (agent still working).
   const chatShowTypingIndicator = React.useMemo(() => {
@@ -257,7 +261,22 @@ function ComergeStudioInner({
   React.useEffect(() => {
     updateLastEditQueueInfo(null);
     setSuppressQueueUntilResponse(false);
+    setUpstreamSyncStatus(null);
   }, [activeAppId, updateLastEditQueueInfo]);
+
+  const handleSyncUpstream = React.useCallback(async () => {
+    if (!app?.id) {
+      throw new Error('Missing app');
+    }
+    setSyncingUpstream(true);
+    try {
+      const result = await appsRepository.syncUpstream(activeAppId);
+      setUpstreamSyncStatus(result.status);
+      return result;
+    } finally {
+      setSyncingUpstream(false);
+    }
+  }, [activeAppId, app?.id]);
 
   React.useEffect(() => {
     if (!lastEditQueueInfo?.queueItemId) return;
@@ -320,6 +339,9 @@ function ComergeStudioInner({
                 }
               : undefined
           }
+          onSyncUpstream={actions.isOwner && app?.forkedFromAppId ? handleSyncUpstream : undefined}
+          syncingUpstream={syncingUpstream}
+          upstreamSyncStatus={upstreamSyncStatus}
           onApprove={async (mr) => {
             if (processingMrId) return;
             setProcessingMrId(mr.id);

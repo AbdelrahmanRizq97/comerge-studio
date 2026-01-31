@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { ActivityIndicator, Alert, View } from 'react-native';
-import { Send } from 'lucide-react-native';
+import { RefreshCw, Send } from 'lucide-react-native';
 
 import type { MergeRequest } from '../../../data/merge-requests/types';
 import type { UserStats } from '../../../data/users/types';
+import type { SyncUpstreamStatus } from '../../../data/apps/types';
 import { MergeRequestStatusCard } from '../../../components/merge-requests/MergeRequestStatusCard';
 import { ReviewMergeRequestCarousel } from '../../../components/merge-requests/ReviewMergeRequestCarousel';
 import { Text } from '../../../components/primitives/Text';
@@ -16,6 +17,9 @@ import { MergeIcon } from '../../../components/icons/MergeIcon';
 
 export type PreviewCollaborateSectionProps = {
   canSubmitMergeRequest: boolean;
+  canSyncUpstream: boolean;
+  syncingUpstream?: boolean;
+  upstreamSyncStatus?: SyncUpstreamStatus | null;
   incomingMergeRequests: MergeRequest[];
   outgoingMergeRequests: MergeRequest[];
   creatorStatsById: Record<string, UserStats>;
@@ -24,6 +28,7 @@ export type PreviewCollaborateSectionProps = {
   testingMrId?: string | null;
   toMergeRequestSummary: (mr: MergeRequest) => import('../../../components/models/types').MergeRequestSummary;
   onSubmitMergeRequest?: () => void | Promise<void>;
+  onSyncUpstream?: () => Promise<{ status: SyncUpstreamStatus }>;
   onRequestApprove?: (mr: MergeRequest) => void;
   onReject?: (mr: MergeRequest) => void | Promise<void>;
   onTestMr?: (mr: MergeRequest) => void | Promise<void>;
@@ -31,6 +36,9 @@ export type PreviewCollaborateSectionProps = {
 
 export function PreviewCollaborateSection({
   canSubmitMergeRequest,
+  canSyncUpstream,
+  syncingUpstream,
+  upstreamSyncStatus,
   incomingMergeRequests,
   outgoingMergeRequests,
   creatorStatsById,
@@ -39,17 +47,24 @@ export function PreviewCollaborateSection({
   testingMrId,
   toMergeRequestSummary,
   onSubmitMergeRequest,
+  onSyncUpstream,
   onRequestApprove,
   onReject,
   onTestMr,
 }: PreviewCollaborateSectionProps) {
   const theme = useTheme();
   const [submittingMr, setSubmittingMr] = React.useState(false);
+  const [syncingLocal, setSyncingLocal] = React.useState(false);
 
-  const hasSection = canSubmitMergeRequest || incomingMergeRequests.length > 0 || outgoingMergeRequests.length > 0;
+  const hasSection =
+    canSubmitMergeRequest || canSyncUpstream || incomingMergeRequests.length > 0 || outgoingMergeRequests.length > 0;
   if (!hasSection) return null;
 
-  const showActionsSubtitle = (canSubmitMergeRequest && onSubmitMergeRequest) || (onTestMr && incomingMergeRequests.length > 0);
+  const isSyncing = Boolean(syncingUpstream || syncingLocal);
+  const showActionsSubtitle =
+    (canSubmitMergeRequest && onSubmitMergeRequest) ||
+    (canSyncUpstream && onSyncUpstream) ||
+    (onTestMr && incomingMergeRequests.length > 0);
 
   return (
     <>
@@ -128,6 +143,83 @@ export function PreviewCollaborateSection({
             </Text>
           }
           right={<Send size={16} color="#03DAC6" />}
+        />
+      ) : null}
+
+      {canSyncUpstream && onSyncUpstream ? (
+        <PressableCardRow
+          accessibilityLabel="Sync from original"
+          disabled={isSyncing}
+          onPress={() => {
+            Alert.alert(
+              'Sync from Original',
+              'This will pull the latest upstream changes into your remix.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Sync',
+                  style: 'destructive',
+                  onPress: () => {
+                    setSyncingLocal(true);
+                    Promise.resolve(onSyncUpstream())
+                      .then((result) => {
+                        if (result?.status === 'up-to-date') {
+                          Alert.alert('Up to date', 'Your fork already includes the latest upstream changes.');
+                        } else {
+                          Alert.alert('Sync started', 'Upstream changes are being merged into your fork.');
+                        }
+                      })
+                      .catch(() => {
+                        Alert.alert('Sync failed', 'We could not start the sync. Please try again.');
+                      })
+                      .finally(() => setSyncingLocal(false));
+                  },
+                },
+              ]
+            );
+          }}
+          style={{
+            padding: theme.spacing.lg,
+            borderRadius: theme.radii.lg,
+            backgroundColor: withAlpha(theme.colors.surfaceRaised, 0.5),
+            borderWidth: 1,
+            borderColor: withAlpha(theme.colors.primary, 0.25),
+            marginBottom: theme.spacing.sm,
+          }}
+          left={
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 999,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: withAlpha(theme.colors.primary, 0.12),
+                marginRight: theme.spacing.lg,
+              }}
+            >
+              {isSyncing ? (
+                <ActivityIndicator color={theme.colors.primary} size="small" />
+              ) : (
+                <RefreshCw size={18} color={theme.colors.primary} />
+              )}
+            </View>
+          }
+          title={
+            <Text style={{ color: theme.colors.text, fontSize: 16, lineHeight: 20, fontWeight: theme.typography.fontWeight.semibold }}>
+              Sync from Original
+            </Text>
+          }
+          subtitle={
+            <Text style={{ color: theme.colors.textMuted, fontSize: 12, lineHeight: 16, marginTop: 2 }}>
+              {isSyncing
+                ? 'Syncing upstream changes...'
+                : upstreamSyncStatus === 'up-to-date'
+                  ? 'You are already up to date with the original app'
+                  : 'Pull the latest upstream changes into this remix'}
+            </Text>
+          }
+          right={<RefreshCw size={16} color={theme.colors.primary} />}
         />
       ) : null}
 

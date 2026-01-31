@@ -115,6 +115,13 @@ export function usePreviewPanelData(params: {
     return false;
   }, [app, isOwner, outgoingMergeRequests]);
 
+  const canSyncUpstream = React.useMemo(() => {
+    if (!isOwner) return false;
+    if (!app) return false;
+    if (!app.forkedFromAppId) return false;
+    return app.status === 'ready';
+  }, [app, isOwner]);
+
   const showProcessing = app ? app.status !== 'ready' : false;
 
   return {
@@ -126,6 +133,7 @@ export function usePreviewPanelData(params: {
     stats,
     showProcessing,
     canSubmitMergeRequest,
+    canSyncUpstream,
   };
 }
 

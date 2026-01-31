@@ -46,6 +46,9 @@ export type StudioOverlayProps = {
   testingMrId?: string | null;
   toMergeRequestSummary: (mr: MergeRequest) => MergeRequestSummary;
   onSubmitMergeRequest?: () => void | Promise<void>;
+  onSyncUpstream?: () => Promise<{ status: import('../../data/apps/types').SyncUpstreamStatus }>;
+  syncingUpstream?: boolean;
+  upstreamSyncStatus?: import('../../data/apps/types').SyncUpstreamStatus | null;
   onApprove?: (mr: MergeRequest) => void | Promise<void>;
   onReject?: (mr: MergeRequest) => void | Promise<void>;
   onTestMr?: (mr: MergeRequest) => void | Promise<void>;
@@ -85,6 +88,9 @@ export function StudioOverlay({
   testingMrId,
   toMergeRequestSummary,
   onSubmitMergeRequest,
+  onSyncUpstream,
+  syncingUpstream,
+  upstreamSyncStatus,
   onApprove,
   onReject,
   onTestMr,
@@ -248,6 +254,9 @@ export function StudioOverlay({
               onGoToChat={goToChat}
               onStartDraw={isOwner ? startDraw : undefined}
               onSubmitMergeRequest={onSubmitMergeRequest}
+              onSyncUpstream={onSyncUpstream}
+              syncingUpstream={syncingUpstream}
+              upstreamSyncStatus={upstreamSyncStatus}
               onRequestApprove={(mr) => setConfirmMrId(mr.id)}
               onReject={onReject}
               onTestMr={handleTestMr}

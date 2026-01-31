@@ -14,6 +14,7 @@ import type {
   ListLikedAppsParams,
   ListPublicAppsParams,
   LikedAppsList,
+  SyncUpstreamResponse,
 } from './types';
 
 export interface AppsRemoteDataSource {
@@ -26,6 +27,7 @@ export interface AppsRemoteDataSource {
   getInsights(appId: string): Promise<ServiceResponse<AppInsights>>;
   getAnalytics(appId: string, params: AppAnalyticsParams): Promise<ServiceResponse<AppAnalyticsPoint[]>>;
   importFromGithub(payload: ImportGithubAppRequest): Promise<ServiceResponse<ImportGithubAppResponse>>;
+  syncUpstream(appId: string): Promise<ServiceResponse<SyncUpstreamResponse>>;
 }
 
 class AppsRemoteDataSourceImpl extends BaseRemote implements AppsRemoteDataSource {
@@ -87,6 +89,13 @@ class AppsRemoteDataSourceImpl extends BaseRemote implements AppsRemoteDataSourc
     const { data } = await api.get<ServiceResponse<AppAnalyticsPoint[]>>(
       `/v1/apps/${encodeURIComponent(appId)}/analytics`,
       { params: query },
+    );
+    return data;
+  }
+
+  async syncUpstream(appId: string): Promise<ServiceResponse<SyncUpstreamResponse>> {
+    const { data } = await api.post<ServiceResponse<SyncUpstreamResponse>>(
+      `/v1/apps/${encodeURIComponent(appId)}/sync-upstream`,
     );
     return data;
   }

@@ -29,6 +29,8 @@ export type MergeRequestEntry = {
   createdAt: string;
 };
 
+export type SyncRequestEntry = MergeRequestEntry;
+
 export type LikeEntry = {
   userId: string;
   createdAt: string;
@@ -62,6 +64,12 @@ export type AppInsights = {
     approved: number;
     merged: number;
     entries: MergeRequestEntry[];
+  };
+  syncs: {
+    total: number;
+    approved: number;
+    merged: number;
+    entries: SyncRequestEntry[];
   };
   likes: {
     total: number;
@@ -135,6 +143,13 @@ export type ForkAppRequest = {
   name?: string;
   platform?: string;
   forkedFromCommitId?: string;
+};
+
+export type SyncUpstreamStatus = 'up-to-date' | 'queued';
+
+export type SyncUpstreamResponse = {
+  status: SyncUpstreamStatus;
+  mergeRequestId?: string;
 };
 
 export type ImportGithubAppRequest = {

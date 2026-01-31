@@ -25,6 +25,9 @@ export function ChatMessageBubble({ message, renderContent, style }: ChatMessage
   const isMergeRejected = metaEvent === 'merge_request.rejected';
   const isMergeCompleted = metaEvent === 'merge.completed';
 
+  const isSyncStarted = metaEvent === 'sync.started';
+  const isSyncCompleted = metaEvent === 'sync.completed';
+
   const isHuman = message.author === 'human' || isMergeApproved || isMergeRejected;
 
   const align: ViewStyle = { alignSelf: isHuman ? 'flex-end' : 'flex-start' };
@@ -51,10 +54,10 @@ export function ChatMessageBubble({ message, renderContent, style }: ChatMessage
         ]}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {isMergeCompleted ? (
+          {isMergeCompleted || isSyncCompleted ? (
             <CheckCheck size={16} color={theme.colors.success} style={{ marginRight: theme.spacing.sm }} />
           ) : null}
-          {isMergeApproved ? (
+          {isMergeApproved || isSyncStarted ? (
             <GitMerge size={16} color={theme.colors.text} style={{ marginRight: theme.spacing.sm }} />
           ) : null}
           <View style={{ flexShrink: 1, minWidth: 0 }}>

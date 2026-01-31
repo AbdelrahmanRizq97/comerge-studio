@@ -11,6 +11,7 @@ import type {
   ListLikedAppsParams,
   ListPublicAppsParams,
   LikedAppsList,
+  SyncUpstreamResponse,
 } from './types';
 import { appsRemoteDataSource } from './remote';
 import type { AppsRemoteDataSource } from './remote';
@@ -82,6 +83,7 @@ export interface AppsRepository {
   subscribeCreatedApps(userId: string, handlers: AppSubscriptionHandlers): () => void;
   subscribeApp(appId: string, handlers: AppSubscriptionHandlers): () => void;
   importFromGithub(payload: ImportGithubAppRequest): Promise<ImportGithubAppResponse>;
+  syncUpstream(appId: string): Promise<SyncUpstreamResponse>;
 }
 
 class AppsRepositoryImpl extends BaseRepository implements AppsRepository {
@@ -131,6 +133,11 @@ class AppsRepositoryImpl extends BaseRepository implements AppsRepository {
 
   async importFromGithub(payload: ImportGithubAppRequest): Promise<ImportGithubAppResponse> {
     const res = await this.remote.importFromGithub(payload);
+    return this.unwrapOrThrow(res);
+  }
+
+  async syncUpstream(appId: string): Promise<SyncUpstreamResponse> {
+    const res = await this.remote.syncUpstream(appId);
     return this.unwrapOrThrow(res);
   }
 

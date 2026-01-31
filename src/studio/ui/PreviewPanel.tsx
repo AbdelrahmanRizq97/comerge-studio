@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActivityIndicator, Platform, Share, View } from 'react-native';
 
-import type { App } from '../../data/apps/types';
+import type { App, SyncUpstreamStatus } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
 import { log } from '../../core/logger';
 import { PreviewPage } from '../../components/preview/PreviewPage';
@@ -30,6 +30,9 @@ export type PreviewPanelProps = {
   onGoToChat: () => void;
   onStartDraw?: () => void;
   onSubmitMergeRequest?: () => void | Promise<void>;
+  onSyncUpstream?: () => Promise<{ status: SyncUpstreamStatus }>;
+  syncingUpstream?: boolean;
+  upstreamSyncStatus?: SyncUpstreamStatus | null;
   onRequestApprove?: (mr: MergeRequest) => void;
   onReject?: (mr: MergeRequest) => void | Promise<void>;
   onTestMr?: (mr: MergeRequest) => void | Promise<void>;
@@ -54,6 +57,9 @@ export function PreviewPanel({
   onGoToChat,
   onStartDraw,
   onSubmitMergeRequest,
+  onSyncUpstream,
+  syncingUpstream,
+  upstreamSyncStatus,
   onRequestApprove,
   onReject,
   onTestMr,
@@ -83,7 +89,17 @@ export function PreviewPanel({
     }
   }, [app]);
 
-  const { imageUrl, imageLoaded, setImageLoaded, creator, insights, stats, showProcessing, canSubmitMergeRequest } = usePreviewPanelData({
+  const {
+    imageUrl,
+    imageLoaded,
+    setImageLoaded,
+    creator,
+    insights,
+    stats,
+    showProcessing,
+    canSubmitMergeRequest,
+    canSyncUpstream,
+  } = usePreviewPanelData({
     app,
     isOwner,
     outgoingMergeRequests,
@@ -145,6 +161,9 @@ export function PreviewPanel({
 
       <PreviewCollaborateSection
         canSubmitMergeRequest={canSubmitMergeRequest}
+        canSyncUpstream={canSyncUpstream}
+        syncingUpstream={syncingUpstream}
+        upstreamSyncStatus={upstreamSyncStatus}
         incomingMergeRequests={incomingMergeRequests}
         outgoingMergeRequests={outgoingMergeRequests}
         creatorStatsById={creatorStatsById}
@@ -153,6 +172,7 @@ export function PreviewPanel({
         testingMrId={testingMrId}
         toMergeRequestSummary={toMergeRequestSummary}
         onSubmitMergeRequest={onSubmitMergeRequest}
+        onSyncUpstream={onSyncUpstream}
         onRequestApprove={onRequestApprove}
         onReject={onReject}
         onTestMr={onTestMr}

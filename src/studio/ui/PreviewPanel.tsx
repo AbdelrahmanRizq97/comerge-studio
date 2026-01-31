@@ -63,9 +63,9 @@ export function PreviewPanel({
   const handleShare = React.useCallback(async () => {
     if (!app || !app.isPublic) return;
     const shareUrl = `https://remix.one/app/${app.id}`;
-    const message = app.name ? `${app.name} on Comerge\n${shareUrl}` : `Check out this app on Comerge\n${shareUrl}`;
+    const message = app.name ? `${app.name} on Remix\n${shareUrl}` : `Check out this app on Remix\n${shareUrl}`;
     try {
-      const title = app.name ?? 'Comerge app';
+      const title = app.name ?? 'Remix app';
       const payload =
         Platform.OS === 'ios'
           ? {

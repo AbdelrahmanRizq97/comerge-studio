@@ -2,7 +2,7 @@ import type { EditQueueRemoteDataSource } from './remote';
 import { editQueueRemoteDataSource } from './remote';
 import type { EditQueueItem, EditQueueListResponse, UpdateEditQueueItemRequest } from './types';
 import { BaseRepository } from '../../base-repository';
-import { getSupabaseClient } from '../../../core/services/supabase';
+import { subscribeManagedChannel } from '../../../core/services/supabase/realtimeManager';
 import type { AttachmentMeta } from '../../attachment/types';
 
 type DbAppJobQueueRow = {
@@ -89,45 +89,40 @@ class EditQueueRepositoryImpl extends BaseRepository implements EditQueueReposit
       onDelete?: (item: EditQueueItem) => void;
     }
   ): () => void {
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(`edit-queue:app:${appId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'app_job_queue', filter: `app_id=eq.${appId}` },
-        (payload) => {
-          const row = payload.new as DbAppJobQueueRow;
-          if (row.kind !== 'edit') return;
-          const item = mapQueueItem(row);
-          if (!ACTIVE_STATUSES.includes(item.status)) return;
-          handlers.onInsert?.(item);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'app_job_queue', filter: `app_id=eq.${appId}` },
-        (payload) => {
-          const row = payload.new as DbAppJobQueueRow;
-          if (row.kind !== 'edit') return;
-          const item = mapQueueItem(row);
-          if (ACTIVE_STATUSES.includes(item.status)) handlers.onUpdate?.(item);
-          else handlers.onDelete?.(item);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'app_job_queue', filter: `app_id=eq.${appId}` },
-        (payload) => {
-          const row = payload.old as DbAppJobQueueRow;
-          if (row.kind !== 'edit') return;
-          handlers.onDelete?.(mapQueueItem(row));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeManagedChannel(`edit-queue:app:${appId}`, (channel) => {
+      channel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'app_job_queue', filter: `app_id=eq.${appId}` },
+          (payload) => {
+            const row = payload.new as DbAppJobQueueRow;
+            if (row.kind !== 'edit') return;
+            const item = mapQueueItem(row);
+            if (!ACTIVE_STATUSES.includes(item.status)) return;
+            handlers.onInsert?.(item);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'app_job_queue', filter: `app_id=eq.${appId}` },
+          (payload) => {
+            const row = payload.new as DbAppJobQueueRow;
+            if (row.kind !== 'edit') return;
+            const item = mapQueueItem(row);
+            if (ACTIVE_STATUSES.includes(item.status)) handlers.onUpdate?.(item);
+            else handlers.onDelete?.(item);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'app_job_queue', filter: `app_id=eq.${appId}` },
+          (payload) => {
+            const row = payload.old as DbAppJobQueueRow;
+            if (row.kind !== 'edit') return;
+            handlers.onDelete?.(mapQueueItem(row));
+          }
+        );
+    });
   }
 }
 

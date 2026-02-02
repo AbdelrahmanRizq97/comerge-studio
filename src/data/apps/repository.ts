@@ -16,7 +16,7 @@ import type {
 import { appsRemoteDataSource } from './remote';
 import type { AppsRemoteDataSource } from './remote';
 import { BaseRepository } from '../../data/base-repository';
-import { getSupabaseClient } from '../../core/services/supabase';
+import { subscribeManagedChannel } from '../../core/services/supabase/realtimeManager';
 
 type DbAppRow = {
   id: string;
@@ -152,38 +152,33 @@ class AppsRepositoryImpl extends BaseRepository implements AppsRepository {
   }
 
   private subscribeToAppChannel(channelKey: string, filter: string, handlers: AppSubscriptionHandlers): () => void {
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(channelKey)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'app', filter },
-        (payload) => {
-          console.log('[subscribeToAppChannel] onInsert', payload);
-          handlers.onInsert?.(mapDbAppRow(payload.new as DbAppRow));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'app', filter },
-        (payload) => {
-          console.log('[subscribeToAppChannel] onUpdate', payload);
-          handlers.onUpdate?.(mapDbAppRow(payload.new as DbAppRow));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'app', filter },
-        (payload) => {
-          console.log('[subscribeToAppChannel] onDelete', payload);
-          handlers.onDelete?.(mapDbAppRow(payload.old as DbAppRow));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeManagedChannel(channelKey, (channel) => {
+      channel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'app', filter },
+          (payload) => {
+            console.log('[subscribeToAppChannel] onInsert', payload);
+            handlers.onInsert?.(mapDbAppRow(payload.new as DbAppRow));
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'app', filter },
+          (payload) => {
+            console.log('[subscribeToAppChannel] onUpdate', payload);
+            handlers.onUpdate?.(mapDbAppRow(payload.new as DbAppRow));
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'app', filter },
+          (payload) => {
+            console.log('[subscribeToAppChannel] onDelete', payload);
+            handlers.onDelete?.(mapDbAppRow(payload.old as DbAppRow));
+          }
+        );
+    });
   }
 }
 

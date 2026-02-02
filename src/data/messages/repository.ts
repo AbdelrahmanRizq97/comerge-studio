@@ -2,7 +2,7 @@ import type { MessagesRemoteDataSource } from './remote';
 import { messagesRemoteDataSource } from './remote';
 import type { Message } from './types';
 import { BaseRepository } from '../../data/base-repository';
-import { getSupabaseClient } from '../../core/services/supabase';
+import { subscribeManagedChannel } from '../../core/services/supabase/realtimeManager';
 
 type DbMessageRow = {
   id: string;
@@ -64,38 +64,33 @@ class MessagesRepositoryImpl extends BaseRepository implements MessagesRepositor
       onDelete?: (m: Message) => void;
     }
   ): () => void {
-    const supabase = getSupabaseClient();
-    const channel = supabase
-      .channel(`messages:thread:${threadId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'message', filter: `thread_id=eq.${threadId}` },
-        (payload) => {
-          const row = payload.new as DbMessageRow;
-          handlers.onInsert?.(mapDbRowToMessage(row));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'message', filter: `thread_id=eq.${threadId}` },
-        (payload) => {
-          const row = payload.new as DbMessageRow;
-          handlers.onUpdate?.(mapDbRowToMessage(row));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'message', filter: `thread_id=eq.${threadId}` },
-        (payload) => {
-          const row = payload.old as DbMessageRow;
-          handlers.onDelete?.(mapDbRowToMessage(row));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return subscribeManagedChannel(`messages:thread:${threadId}`, (channel) => {
+      channel
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'message', filter: `thread_id=eq.${threadId}` },
+          (payload) => {
+            const row = payload.new as DbMessageRow;
+            handlers.onInsert?.(mapDbRowToMessage(row));
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'message', filter: `thread_id=eq.${threadId}` },
+          (payload) => {
+            const row = payload.new as DbMessageRow;
+            handlers.onUpdate?.(mapDbRowToMessage(row));
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'message', filter: `thread_id=eq.${threadId}` },
+          (payload) => {
+            const row = payload.old as DbMessageRow;
+            handlers.onDelete?.(mapDbRowToMessage(row));
+          }
+        );
+    });
   }
 }
 

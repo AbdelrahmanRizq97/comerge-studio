@@ -118,11 +118,8 @@ export function Bubble({
       // noop
     }
 
-    animateToHidden({
-      onFinish: () => {
-        onPressRef.current?.();
-      },
-    });
+    onPressRef.current?.();
+    animateToHidden();
   }, [animateToHidden]);
 
   useEffect(() => {

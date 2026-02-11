@@ -27,7 +27,7 @@ export function PreviewMetaSection({ app, isOwner, creator, downloadsCount }: Pr
       creatorName={creator?.name ?? null}
       tag={
         isOwner || app.forkedFromAppId ? (
-          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: '#3700B3' }}>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999, backgroundColor: '#007A75' }}>
             <Text variant="caption" style={{ color: '#fff', fontWeight: theme.typography.fontWeight.semibold }}>
               {app.forkedFromAppId ? 'Remix' : 'Owner'}
             </Text>

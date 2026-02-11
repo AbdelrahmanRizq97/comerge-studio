@@ -1,8 +1,9 @@
-import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import { Dimensions, Keyboard, Modal, Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
 
 import Markdown from 'react-native-markdown-display';
 
 import { useTheme } from '../../theme';
+import { impact } from '../draw/optionalHaptics';
 import { useEffect, useRef, useState } from 'react';
 
 export type MarkdownTextVariant = 'chat' | 'mergeRequest';
@@ -54,14 +55,13 @@ export function MarkdownText({ markdown, variant = 'chat', bodyColor, style }: M
   const theme = useTheme();
   const isDark = theme.scheme === 'dark';
   const [showCopied, setShowCopied] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipAnchor, setTooltipAnchor] = useState<{ x: number; y: number } | null>(null);
   const [tooltipWidth, setTooltipWidth] = useState(0);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<View>(null);
 
   const baseBodyColor = variant === 'mergeRequest' ? theme.colors.textMuted : theme.colors.text;
   const linkColor =
-    variant === 'mergeRequest' ? (isDark ? theme.colors.primary : '#3700B3') : theme.colors.link;
+    variant === 'mergeRequest' ? (isDark ? theme.colors.primary : '#007A75') : theme.colors.link;
   const linkWeight = variant === 'mergeRequest' ? theme.typography.fontWeight.semibold : undefined;
 
   const codeBgColor = isDark ? '#27272A' : '#E4E4E7';
@@ -69,6 +69,18 @@ export function MarkdownText({ markdown, variant = 'chat', bodyColor, style }: M
 
   const paragraphBottom = variant === 'mergeRequest' ? 8 : 6;
   const baseLineHeight = variant === 'mergeRequest' ? 22 : 20;
+  const screen = Dimensions.get('window');
+  const tooltipPadding = theme.spacing.sm;
+  const tooltipYOffset = theme.spacing.lg + 32;
+  const minTooltipY = theme.spacing.xl;
+
+  const tooltipTop = tooltipAnchor ? Math.max(minTooltipY, tooltipAnchor.y - tooltipYOffset) : 0;
+  const tooltipLeft = tooltipAnchor
+    ? Math.min(
+        Math.max(tooltipAnchor.x, tooltipPadding),
+        Math.max(tooltipPadding, screen.width - tooltipPadding - Math.max(tooltipWidth, 1))
+      )
+    : 0;
 
   useEffect(() => {
     return () => {
@@ -81,16 +93,11 @@ export function MarkdownText({ markdown, variant = 'chat', bodyColor, style }: M
   const handleLongPress = (event: {
     nativeEvent: { locationX: number; locationY: number; pageX: number; pageY: number };
   }) => {
-    const { locationX, locationY, pageX, pageY } = event.nativeEvent;
-
-    if (containerRef.current?.measureInWindow) {
-      containerRef.current.measureInWindow((x, y) => {
-        setTooltipPosition({ x: pageX - x, y: pageY - y });
-      });
-    } else {
-      setTooltipPosition({ x: locationX, y: locationY });
-    }
+    const { pageX, pageY } = event.nativeEvent;
+    setTooltipAnchor({ x: pageX, y: pageY });
+    setTooltipWidth(0);
     copyMarkdownToClipboard(markdown);
+    void impact('light');
     setShowCopied(true);
 
     if (hideTimerRef.current) {
@@ -103,8 +110,8 @@ export function MarkdownText({ markdown, variant = 'chat', bodyColor, style }: M
   };
 
   return (
-    <Pressable style={style} onLongPress={handleLongPress}>
-      <View ref={containerRef} style={{ position: 'relative' }}>
+    <Pressable style={style} onPress={Keyboard.dismiss} onLongPress={handleLongPress}>
+      <View style={{ position: 'relative' }}>
         <Markdown
           style={{
             body: { color: bodyColor ?? baseBodyColor, fontSize: 14, lineHeight: baseLineHeight },
@@ -137,31 +144,34 @@ export function MarkdownText({ markdown, variant = 'chat', bodyColor, style }: M
         >
           {markdown}
         </Markdown>
-        {showCopied && tooltipPosition ? (
-          <View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              left: tooltipPosition.x,
-              top: tooltipPosition.y - theme.spacing.lg - 32,
-              backgroundColor: theme.colors.success,
-              borderRadius: theme.radii.pill,
-              paddingHorizontal: theme.spacing.sm,
-              paddingVertical: theme.spacing.xs,
-              transform: [{ translateX: tooltipWidth ? -tooltipWidth / 2 : 0 }],
-            }}
-            onLayout={(event) => setTooltipWidth(event.nativeEvent.layout.width)}
-          >
-            <Text
-              style={{
-                color: theme.colors.onSuccess,
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}
-            >
-              Copied
-            </Text>
-          </View>
+        {showCopied && tooltipAnchor ? (
+          <Modal transparent visible statusBarTranslucent>
+            <View pointerEvents="none" style={{ flex: 1 }}>
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  left: tooltipLeft,
+                  top: tooltipTop,
+                  backgroundColor: theme.colors.success,
+                  borderRadius: theme.radii.pill,
+                  paddingHorizontal: theme.spacing.sm,
+                  paddingVertical: theme.spacing.xs,
+                }}
+                onLayout={(event) => setTooltipWidth(event.nativeEvent.layout.width)}
+              >
+                <Text
+                  style={{
+                    color: theme.colors.onSuccess,
+                    fontSize: theme.typography.fontSize.xs,
+                    fontWeight: theme.typography.fontWeight.medium,
+                  }}
+                >
+                  Copied
+                </Text>
+              </View>
+            </View>
+          </Modal>
         ) : null}
       </View>
     </Pressable>

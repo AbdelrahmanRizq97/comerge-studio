@@ -19,7 +19,7 @@ const STATUS_BG: Record<AppStatus, string> = {
   ready: '#10B981', // emerald-500
   creating: '#3B82F6', // blue-500
   editing: '#F59E0B', // amber-500
-  forking: '#8B5CF6', // violet-500
+  forking: '#00CBC0', // brand teal
   merging: '#06B6D4', // cyan-500
   error: '#F43F5E', // rose-500
   archived: '#71717A', // zinc-500

@@ -64,7 +64,7 @@ export function ReviewMergeRequestCard({
             padding: 16,
             backgroundColor: withAlpha(theme.colors.surfaceRaised, 0.5),
             borderWidth: 1,
-            borderColor: withAlpha('#3700B3', 0.2),
+            borderColor: withAlpha('#007A75', 0.2),
           } as any,
         ]}
       >

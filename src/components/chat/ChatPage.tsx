@@ -49,7 +49,7 @@ export function ChatPage({
   const insets = useSafeAreaInsets();
   const [composerHeight, setComposerHeight] = React.useState(0);
   const [composerTopHeight, setComposerTopHeight] = React.useState(0);
-  const footerBottomPadding = Platform.OS === 'ios' ? insets.bottom : insets.bottom + 10;
+  const footerBottomPadding = Platform.OS === 'ios' ? insets.bottom - 24 : insets.bottom + 10;
   const totalComposerHeight = composerHeight + composerTopHeight;
   const overlayBottom = totalComposerHeight + footerBottomPadding + theme.spacing.lg;
   const bottomInset = totalComposerHeight + footerBottomPadding + theme.spacing.xl;

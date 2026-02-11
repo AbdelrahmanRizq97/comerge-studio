@@ -32,7 +32,7 @@ function baseColor(role: NonNullable<EdgeGlowFrameProps['role']>, theme: ReturnT
       return theme.colors.warning;
     case 'accent':
     default:
-      return '#A855F7';
+      return theme.colors.primary;
   }
 }
 

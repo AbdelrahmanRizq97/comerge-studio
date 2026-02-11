@@ -14,7 +14,7 @@ export const lightTheme = {
     border: '#E4E4E7',
     borderStrong: '#D4D4D8',
 
-    primary: '#6200EE',
+    primary: '#00CBC0',
     onPrimary: '#FFFFFF',
 
     neutral: '#ECECEE',
@@ -32,7 +32,7 @@ export const lightTheme = {
     onWarning: '#09090B',
     warningSubtle: 'rgba(250, 204, 21, 0.14)',
 
-    link: '#6200EE',
+    link: '#00CBC0',
 
     backdrop: 'rgba(0, 0, 0, 0.35)',
 
@@ -41,8 +41,8 @@ export const lightTheme = {
     floatingSurface: 'rgba(255, 255, 255, 0.6)',
     floatingContent: '#000000',
 
-    accentRingFrom: 'rgba(98, 0, 238, 0.20)',
-    accentRingTo: 'rgba(98, 0, 238, 0.90)',
+    accentRingFrom: 'rgba(0, 203, 192, 0.20)',
+    accentRingTo: 'rgba(0, 203, 192, 0.90)',
     dangerRingFrom: 'rgba(244, 63, 94, 0.35)',
     dangerRingTo: 'rgba(244, 63, 94, 1.0)',
   },
@@ -69,7 +69,7 @@ export const darkTheme = {
     border: '#404049',
     borderStrong: '#52525B',
 
-    primary: '#6200EE',
+    primary: '#00CBC0',
     onPrimary: '#FFFFFF',
 
     neutral: '#0B080F',
@@ -87,7 +87,7 @@ export const darkTheme = {
     onWarning: '#0B080F',
     warningSubtle: 'rgba(251, 191, 36, 0.18)',
 
-    link: '#6200EE',
+    link: '#00CBC0',
 
     backdrop: 'rgba(0, 0, 0, 0.55)',
 
@@ -96,8 +96,8 @@ export const darkTheme = {
     floatingSurface: 'rgba(0, 0, 0, 0.6)',
     floatingContent: '#FFFFFF',
 
-    accentRingFrom: 'rgba(98, 0, 238, 0.20)',
-    accentRingTo: 'rgba(98, 0, 238, 0.90)',
+    accentRingFrom: 'rgba(0, 203, 192, 0.20)',
+    accentRingTo: 'rgba(0, 203, 192, 0.90)',
     dangerRingFrom: 'rgba(244, 63, 94, 0.35)',
     dangerRingTo: 'rgba(244, 63, 94, 1.0)',
   },

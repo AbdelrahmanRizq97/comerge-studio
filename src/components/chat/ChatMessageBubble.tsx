@@ -41,7 +41,7 @@ export function ChatMessageBubble({ message, renderContent, isLast, retrying, on
 
   const bodyColor =
     metaStatus === 'success' ? theme.colors.success : metaStatus === 'error' ? theme.colors.danger : undefined;
-  const showRetry = Boolean(onRetry) && isLast && metaStatus === 'error';
+  const showRetry = Boolean(onRetry) && isLast && metaStatus === 'error' && message.author === 'human';
   const retryLabel = retrying ? 'Retrying...' : 'Retry';
 
   return (

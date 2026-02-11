@@ -19,6 +19,7 @@ const MAX_BACKOFF_MS = 30000;
 const realtimeLog = log.extend('realtime');
 const entries = new Map<string, ChannelEntry>();
 let subscriberIdCounter = 0;
+let resetTimer: ReturnType<typeof setTimeout> | null = null;
 
 function clearTimer(entry: ChannelEntry) {
   if (!entry.timer) return;
@@ -65,11 +66,64 @@ function subscribeChannel(entry: ChannelEntry) {
     if (entry.channel) supabase.removeChannel(entry.channel);
     const channel = buildChannel(entry);
     entry.channel = channel;
-    channel.subscribe((status) => handleStatus(entry, status));
+    channel.subscribe((status: string) => handleStatus(entry, status));
   } catch (error) {
     realtimeLog.warn('[realtime] subscribe failed', error);
     scheduleResubscribe(entry, 'SUBSCRIBE_FAILED');
   }
+}
+
+function unsubscribeChannel(entry: ChannelEntry) {
+  if (!entry.channel) return;
+  try {
+    entry.channel.unsubscribe?.();
+  } catch (error) {
+    realtimeLog.warn('[realtime] unsubscribe failed', error);
+  }
+  entry.channel = null;
+}
+
+export function resetRealtimeState(reason: string) {
+  realtimeLog.warn(`[realtime] reset state ${reason}`);
+  entries.forEach((entry) => {
+    clearTimer(entry);
+    entry.backoffMs = INITIAL_BACKOFF_MS;
+    unsubscribeChannel(entry);
+  });
+  entries.clear();
+}
+
+function resubscribeAll() {
+  entries.forEach((entry) => {
+    if (entry.subscribers.size === 0) return;
+    subscribeChannel(entry);
+  });
+}
+
+export function resetRealtime(reason: string) {
+  if (resetTimer) return;
+  resetTimer = setTimeout(() => {
+    resetTimer = null;
+    const supabase = getSupabaseClient();
+    realtimeLog.warn(`[realtime] full reset ${reason}`);
+    entries.forEach((entry) => {
+      clearTimer(entry);
+      entry.backoffMs = INITIAL_BACKOFF_MS;
+      if (entry.channel) supabase.removeChannel(entry.channel);
+      entry.channel = null;
+    });
+    try {
+      supabase.realtime?.disconnect?.();
+    } catch (error) {
+      realtimeLog.warn('[realtime] disconnect failed', error);
+    }
+    try {
+      supabase.realtime?.connect?.();
+    } catch (error) {
+      realtimeLog.warn('[realtime] connect failed', error);
+    }
+    resubscribeAll();
+  }, 250);
 }
 
 export function subscribeManagedChannel(key: string, configure: ChannelConfigurer): () => void {

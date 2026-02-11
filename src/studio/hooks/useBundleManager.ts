@@ -560,6 +560,7 @@ export function useBundleManager({
   const baseOpIdRef = React.useRef(0);
   const testOpIdRef = React.useRef(0);
   const activeLoadModeRef = React.useRef<'base' | 'test' | null>(null);
+  const desiredModeRef = React.useRef<'base' | 'test'>('base');
 
   const canRequestLatestRef = React.useRef<boolean>(canRequestLatest);
   React.useEffect(() => {
@@ -661,6 +662,12 @@ export function useBundleManager({
   const load = React.useCallback(async (src: BundleSource, mode: 'base' | 'test') => {
     if (!src.appId) return;
 
+    if (mode === 'test') {
+      // Testing takes precedence over any in-flight base refresh.
+      desiredModeRef.current = 'test';
+      baseOpIdRef.current += 1;
+    }
+
     const canRequestLatest = canRequestLatestRef.current;
     if (mode === 'base' && !canRequestLatest) {
       await activateCachedBase(src.appId);
@@ -674,7 +681,7 @@ export function useBundleManager({
     setError(null);
     setStatusLabel(mode === 'test' ? 'Loading test bundle…' : 'Loading latest build…');
 
-    if (mode === 'base') {
+    if (mode === 'base' && desiredModeRef.current === 'base') {
       void activateCachedBase(src.appId);
     }
 
@@ -682,6 +689,7 @@ export function useBundleManager({
       const { bundlePath: path, bundle } = await resolveBundlePath(src, platform, mode);
       if (mode === 'base' && opId !== baseOpIdRef.current) return;
       if (mode === 'test' && opId !== testOpIdRef.current) return;
+      if (desiredModeRef.current !== mode) return;
       setBundlePath(path);
       const fingerprint = bundle.checksumSha256 ?? `id:${bundle.id}`;
 
@@ -750,6 +758,9 @@ export function useBundleManager({
   const restoreBase = React.useCallback(async () => {
     const src = baseRef.current;
     if (!src.appId) return;
+    desiredModeRef.current = 'base';
+    // Exiting test mode should drop any in-flight test completion.
+    testOpIdRef.current += 1;
     await activateCachedBase(src.appId);
     if (canRequestLatestRef.current) {
       await load(src, 'base');

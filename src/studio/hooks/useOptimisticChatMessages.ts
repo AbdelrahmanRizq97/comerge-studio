@@ -13,14 +13,18 @@ export type UseOptimisticChatMessagesParams = {
 export type UseOptimisticChatMessagesResult = {
   messages: ChatMessage[];
   onSend: (text: string, attachments?: string[]) => Promise<void>;
+  onRetry: (messageId: string) => Promise<void>;
+  isRetrying: (messageId: string) => boolean;
 };
 
 type OptimisticChatMessage = {
   id: string;
   content: string;
+  attachments?: string[];
   createdAtIso: string;
   baseServerLastId: string | null;
   failed: boolean;
+  retrying: boolean;
 };
 
 function makeOptimisticId() {
@@ -115,8 +119,20 @@ export function useOptimisticChatMessages({
       const createdAtIso = new Date().toISOString();
       const baseServerLastId = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1]!.id : null;
       const id = makeOptimisticId();
+      const normalizedAttachments = attachments && attachments.length > 0 ? [...attachments] : undefined;
 
-      setOptimisticChat((prev) => [...prev, { id, content: text, createdAtIso, baseServerLastId, failed: false }]);
+      setOptimisticChat((prev) => [
+        ...prev,
+        {
+          id,
+          content: text,
+          attachments: normalizedAttachments,
+          createdAtIso,
+          baseServerLastId,
+          failed: false,
+          retrying: false,
+        },
+      ]);
 
       void Promise.resolve(onSendChat(text, attachments)).catch(() => {
         setOptimisticChat((prev) => prev.map((m) => (m.id === id ? { ...m, failed: true } : m)));
@@ -125,6 +141,42 @@ export function useOptimisticChatMessages({
     [chatMessages, disableOptimistic, onSendChat, shouldForkOnEdit]
   );
 
-  return { messages, onSend };
+  const onRetry = React.useCallback(
+    async (messageId: string) => {
+      if (shouldForkOnEdit || disableOptimistic) return;
+      const target = optimisticChat.find((m) => m.id === messageId);
+      if (!target || target.retrying) return;
+
+      const baseServerLastId = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1]!.id : null;
+      setOptimisticChat((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, failed: false, retrying: true, baseServerLastId }
+            : m
+        )
+      );
+
+      try {
+        await onSendChat(target.content, target.attachments);
+        setOptimisticChat((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, retrying: false } : m))
+        );
+      } catch {
+        setOptimisticChat((prev) =>
+          prev.map((m) => (m.id === messageId ? { ...m, failed: true, retrying: false } : m))
+        );
+      }
+    },
+    [chatMessages, disableOptimistic, onSendChat, optimisticChat, shouldForkOnEdit]
+  );
+
+  const isRetrying = React.useCallback(
+    (messageId: string) => {
+      return optimisticChat.some((m) => m.id === messageId && m.retrying);
+    },
+    [optimisticChat]
+  );
+
+  return { messages, onSend, onRetry, isRetrying };
 }
 

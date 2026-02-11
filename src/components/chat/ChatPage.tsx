@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Keyboard, Platform, View, type ViewStyle } from 'react-native';
+import { Platform, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ChatMessage } from '../models/types';
@@ -12,6 +12,8 @@ export type ChatPageProps = {
   messages: ChatMessage[];
   showTypingIndicator?: boolean;
   renderMessageContent?: ChatMessageListProps['renderMessageContent'];
+  onRetryMessage?: ChatMessageListProps['onRetryMessage'];
+  isRetryingMessage?: ChatMessageListProps['isRetryingMessage'];
   topBanner?: React.ReactNode;
   composerTop?: React.ReactNode;
   composer: Omit<ChatComposerProps, 'attachments'> & {
@@ -32,6 +34,8 @@ export function ChatPage({
   messages,
   showTypingIndicator,
   renderMessageContent,
+  onRetryMessage,
+  isRetryingMessage,
   topBanner,
   composerTop,
   composer,
@@ -45,19 +49,7 @@ export function ChatPage({
   const insets = useSafeAreaInsets();
   const [composerHeight, setComposerHeight] = React.useState(0);
   const [composerTopHeight, setComposerTopHeight] = React.useState(0);
-  const [keyboardVisible, setKeyboardVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
-    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  const footerBottomPadding = Platform.OS === 'ios' ? (keyboardVisible ? 0 : insets.bottom) : insets.bottom + 10;
+  const footerBottomPadding = Platform.OS === 'ios' ? insets.bottom : insets.bottom + 10;
   const totalComposerHeight = composerHeight + composerTopHeight;
   const overlayBottom = totalComposerHeight + footerBottomPadding + theme.spacing.lg;
   const bottomInset = totalComposerHeight + footerBottomPadding + theme.spacing.xl;
@@ -92,6 +84,8 @@ export function ChatPage({
             messages={messages}
             showTypingIndicator={showTypingIndicator}
             renderMessageContent={renderMessageContent}
+            onRetryMessage={onRetryMessage}
+            isRetryingMessage={isRetryingMessage}
             onNearBottomChange={onNearBottomChange}
             bottomInset={bottomInset}
           />

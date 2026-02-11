@@ -10,6 +10,7 @@ export type EditAgentAppRequest = {
   thread_id: string;
   app_id: string;
   attachments?: AttachmentMeta[];
+  idempotencyKey?: string;
 };
 
 export type AgentCreateAppResult = {

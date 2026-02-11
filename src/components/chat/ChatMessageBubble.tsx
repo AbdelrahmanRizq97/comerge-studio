@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { View, type ViewStyle } from 'react-native';
-import { CheckCheck, GitMerge } from 'lucide-react-native';
+import { CheckCheck, GitMerge, RotateCcw } from 'lucide-react-native';
 
 import type { ChatMessage } from '../models/types';
 import { useTheme } from '../../theme';
+import { Button } from '../primitives/Button';
 import { MarkdownText } from '../primitives/MarkdownText';
 import { Surface } from '../primitives/Surface';
+import { Text } from '../primitives/Text';
 
 export type ChatMessageBubbleProps = {
   message: ChatMessage;
@@ -13,10 +15,13 @@ export type ChatMessageBubbleProps = {
    * Optional custom renderer for message content (e.g. markdown).
    */
   renderContent?: (message: ChatMessage) => React.ReactNode;
+  isLast?: boolean;
+  retrying?: boolean;
+  onRetry?: () => void;
   style?: ViewStyle;
 };
 
-export function ChatMessageBubble({ message, renderContent, style }: ChatMessageBubbleProps) {
+export function ChatMessageBubble({ message, renderContent, isLast, retrying, onRetry, style }: ChatMessageBubbleProps) {
   const theme = useTheme();
   const metaEvent = message.meta?.event ?? null;
   const metaStatus = message.meta?.status ?? null;
@@ -36,6 +41,8 @@ export function ChatMessageBubble({ message, renderContent, style }: ChatMessage
 
   const bodyColor =
     metaStatus === 'success' ? theme.colors.success : metaStatus === 'error' ? theme.colors.danger : undefined;
+  const showRetry = Boolean(onRetry) && isLast && metaStatus === 'error';
+  const retryLabel = retrying ? 'Retrying...' : 'Retry';
 
   return (
     <View style={[align, style]}>
@@ -65,6 +72,30 @@ export function ChatMessageBubble({ message, renderContent, style }: ChatMessage
           </View>
         </View>
       </Surface>
+      {showRetry ? (
+        <View style={{ marginTop: theme.spacing.xs, alignSelf: align.alignSelf }}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={onRetry}
+            disabled={retrying}
+            style={{ borderColor: theme.colors.danger }}
+            accessibilityLabel="Retry send"
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {!retrying ? <RotateCcw size={14} color={theme.colors.danger} /> : null}
+              <Text
+                variant="caption"
+                color={theme.colors.danger}
+                style={{ marginLeft: retrying ? 0 : theme.spacing.xs }}
+                numberOfLines={1}
+              >
+                {retryLabel}
+              </Text>
+            </View>
+          </Button>
+        </View>
+      ) : null}
     </View>
   );
 }

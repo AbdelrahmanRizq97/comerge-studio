@@ -9,7 +9,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { isLiquidGlassSupported } from '@callstack/liquid-glass';
+import { isLiquidGlassSupported, LiquidGlassView } from '@callstack/liquid-glass';
 import { Plus } from 'lucide-react-native';
 
 import { useTheme } from '../../theme';
@@ -25,7 +25,6 @@ export type ChatComposerProps = {
   disabled?: boolean;
   sendDisabled?: boolean;
   sending?: boolean;
-  autoFocus?: boolean;
   onSend: (text: string, attachments?: string[]) => void | Promise<void>;
   attachments?: string[];
   onRemoveAttachment?: (index: number) => void;
@@ -95,7 +94,6 @@ export function ChatComposer({
   disabled = false,
   sendDisabled = false,
   sending = false,
-  autoFocus = false,
   onSend,
   attachments = [],
   onRemoveAttachment,
@@ -119,20 +117,6 @@ export function ChatComposer({
   const maxInputHeight = React.useMemo(() => Dimensions.get('window').height * 0.5, []);
   const shakeAnim = React.useRef(new Animated.Value(0)).current;
   const [sendPressed, setSendPressed] = React.useState(false);
-  const inputRef = React.useRef<import('react-native').TextInput | null>(null);
-  const prevAutoFocusRef = React.useRef(false);
-
-  React.useEffect(() => {
-    const shouldFocus = autoFocus && !prevAutoFocusRef.current && !disabled && !sending;
-    prevAutoFocusRef.current = autoFocus;
-    if (!shouldFocus) return;
-
-    // Temporary workaround: Bottom sheets can take a moment to open
-    const t = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 75);
-    return () => clearTimeout(t);
-  }, [autoFocus, disabled, sending]);
 
   const triggerShake = React.useCallback(() => {
     shakeAnim.setValue(0);
@@ -168,7 +152,7 @@ export function ChatComposer({
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
         <Animated.View style={{ flex: 1, transform: [{ translateX: shakeAnim }] }}>
-          <ResettableLiquidGlassView
+          <LiquidGlassView
             style={[
               // LiquidGlassView doesn't reliably auto-size to children; ensure enough height for the
               // thumbnail strip when attachments are present.
@@ -219,13 +203,12 @@ export function ChatComposer({
             ) : null}
 
             <MultilineTextInput
-              ref={inputRef}
               value={text}
               onChangeText={setText}
               placeholder={placeholder}
               editable={!disabled && !sending}
               useBottomSheetTextInput={useBottomSheetTextInput}
-              autoFocus={autoFocus}
+              autoFocus={false}
               placeholderTextColor={placeholderTextColor}
               scrollEnabled
               style={{
@@ -237,7 +220,7 @@ export function ChatComposer({
                 lineHeight: 20,
               }}
             />
-          </ResettableLiquidGlassView>
+          </LiquidGlassView>
         </Animated.View>
 
         <ResettableLiquidGlassView

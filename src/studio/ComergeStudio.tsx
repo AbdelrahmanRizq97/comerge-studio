@@ -249,6 +249,8 @@ function ComergeStudioInner({
   const [testingMrId, setTestingMrId] = React.useState<string | null>(null);
   const [syncingUpstream, setSyncingUpstream] = React.useState(false);
   const [upstreamSyncStatus, setUpstreamSyncStatus] = React.useState<SyncUpstreamStatus | null>(null);
+  const isMrTestBuildInProgress = bundle.loading && bundle.loadingMode === 'test';
+  const isBaseBundleDownloading = bundle.loading && bundle.loadingMode === 'base' && !bundle.isTesting;
 
   // Show typing dots when the last message isn't an outcome (agent still working).
   const chatShowTypingIndicator = React.useMemo(() => {
@@ -321,6 +323,7 @@ function ComergeStudioInner({
           isOwner={actions.isOwner}
           shouldForkOnEdit={actions.shouldForkOnEdit}
           isTesting={bundle.isTesting}
+          isBaseBundleDownloading={isBaseBundleDownloading}
           onRestoreBase={async () => {
             setTestingMrId(null);
             await bundle.restoreBase();
@@ -329,11 +332,11 @@ function ComergeStudioInner({
           outgoingMergeRequests={mergeRequests.lists.outgoing}
           creatorStatsById={mergeRequests.creatorStatsById}
           processingMrId={processingMrId}
-          isBuildingMrTest={bundle.loading}
+          isBuildingMrTest={isMrTestBuildInProgress}
           testingMrId={testingMrId}
           toMergeRequestSummary={mergeRequests.toSummary}
           onSubmitMergeRequest={
-            app?.forkedFromAppId && actions.isOwner && !hasOpenOutgoingMr
+            app?.forkedFromAppId && actions.isOwner && !mergeRequests.loading && !hasOpenOutgoingMr
               ? async () => {
                   await mergeRequests.actions.openMergeRequest(activeAppId);
                 }
@@ -361,6 +364,7 @@ function ComergeStudioInner({
             }
           }}
           onTestMr={async (mr) => {
+            if (testingMrId === mr.id || bundle.loadingMode === 'test') return;
             setTestingMrId(mr.id);
             await bundle.loadTest({ appId: mr.sourceAppId, commitId: mr.sourceTipCommitId ?? mr.sourceCommitId });
           }}

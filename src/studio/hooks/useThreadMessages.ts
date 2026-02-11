@@ -9,6 +9,7 @@ export type UseThreadMessagesResult = {
   raw: Message[];
   messages: ChatMessage[];
   loading: boolean;
+  refreshing: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
 };
@@ -78,9 +79,15 @@ function mapMessageToChatMessage(m: Message): ChatMessage {
 export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   const [raw, setRaw] = React.useState<Message[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   const activeRequestIdRef = React.useRef(0);
   const foregroundSignal = useForegroundSignal(Boolean(threadId));
+  const hasLoadedOnceRef = React.useRef(false);
+
+  React.useEffect(() => {
+    hasLoadedOnceRef.current = false;
+  }, [threadId]);
 
   const upsertSorted = React.useCallback((prev: Message[], m: Message) => {
     const next = prev.filter((x) => x.id !== m.id);
@@ -89,24 +96,38 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     return next;
   }, []);
 
-  const refetch = React.useCallback(async () => {
+  const refetch = React.useCallback(async (opts?: { background?: boolean }) => {
     if (!threadId) {
       setRaw([]);
+      setLoading(false);
+      setRefreshing(false);
       return;
     }
     const requestId = ++activeRequestIdRef.current;
-    setLoading(true);
+    const isBackground = Boolean(opts?.background);
+    const useBackgroundRefresh = isBackground && hasLoadedOnceRef.current;
+    if (useBackgroundRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const list = await messagesRepository.list(threadId);
       if (activeRequestIdRef.current !== requestId) return;
+      hasLoadedOnceRef.current = true;
       setRaw([...list].sort(compareMessages));
     } catch (e) {
       if (activeRequestIdRef.current !== requestId) return;
       setError(e instanceof Error ? e : new Error(String(e)));
       setRaw([]);
     } finally {
-      if (activeRequestIdRef.current === requestId) setLoading(false);
+      if (activeRequestIdRef.current !== requestId) return;
+      if (useBackgroundRefresh) {
+        setRefreshing(false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [threadId]);
 
@@ -127,7 +148,7 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   React.useEffect(() => {
     if (!threadId) return;
     if (foregroundSignal <= 0) return;
-    void refetch();
+    void refetch({ background: true });
   }, [foregroundSignal, refetch, threadId]);
 
   const messages = React.useMemo(() => {
@@ -136,7 +157,7 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     return resolved.map(mapMessageToChatMessage);
   }, [raw]);
 
-  return { raw, messages, loading, error, refetch };
+  return { raw, messages, loading, refreshing, error, refetch };
 }
 
 

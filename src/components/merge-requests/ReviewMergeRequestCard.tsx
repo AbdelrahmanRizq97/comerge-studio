@@ -109,7 +109,7 @@ export function ReviewMergeRequestCard({
 
             <Text style={{ color: theme.colors.textMuted, fontSize: 12, lineHeight: 16, marginBottom: 12 }}>
               {creator
-                ? `${creator.approvedOpenedMergeRequests} approved merge${creator.approvedOpenedMergeRequests !== 1 ? 's' : ''}`
+                ? `${creator.approvedOrMergedMergeRequests} approved merge${creator.approvedOrMergedMergeRequests !== 1 ? 's' : ''}`
                 : 'Loading stats...'}
             </Text>
 

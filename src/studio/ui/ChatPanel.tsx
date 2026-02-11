@@ -15,7 +15,6 @@ import { ChatQueue } from '../../components/chat/ChatQueue';
 
 export type ChatPanelProps = {
   title?: string;
-  autoFocusComposer?: boolean;
   messages: ChatMessage[];
   showTypingIndicator?: boolean;
   loading?: boolean;
@@ -31,13 +30,14 @@ export type ChatPanelProps = {
   onNavigateHome?: () => void;
   onStartDraw?: () => void;
   onSend: (text: string, attachments?: string[]) => void | Promise<void>;
+  onRetryMessage?: (messageId: string) => void | Promise<void>;
+  isRetryingMessage?: (messageId: string) => boolean;
   queueItems?: EditQueueItem[];
   onRemoveQueueItem?: (id: string) => void;
 };
 
 export function ChatPanel({
   title = 'Chat',
-  autoFocusComposer = false,
   messages,
   showTypingIndicator,
   loading,
@@ -53,6 +53,8 @@ export function ChatPanel({
   onNavigateHome,
   onStartDraw,
   onSend,
+  onRetryMessage,
+  isRetryingMessage,
   queueItems = [],
   onRemoveQueueItem,
 }: ChatPanelProps) {
@@ -138,6 +140,8 @@ export function ChatPanel({
       header={header}
       messages={messages}
       showTypingIndicator={showTypingIndicator}
+      onRetryMessage={onRetryMessage}
+      isRetryingMessage={isRetryingMessage}
       topBanner={topBanner}
       composerTop={queueTop}
       composerHorizontalPadding={0}
@@ -158,7 +162,6 @@ export function ChatPanel({
         disabled: Boolean(loading) || Boolean(forking),
         sendDisabled: Boolean(sendDisabled) || Boolean(loading) || Boolean(forking),
         sending: Boolean(sending),
-        autoFocus: autoFocusComposer,
         onSend: handleSend,
         attachments,
         onRemoveAttachment: onRemoveAttachment,

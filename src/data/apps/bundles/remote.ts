@@ -29,7 +29,8 @@ class BundlesRemoteDataSourceImpl extends BaseRemote implements BundlesRemoteDat
 
   async getById(appId: string, bundleId: string): Promise<ServiceResponse<Bundle>> {
     const { data } = await api.get<ServiceResponse<Bundle>>(
-      `/v1/apps/${encodeURIComponent(appId)}/bundles/${encodeURIComponent(bundleId)}`
+      `/v1/apps/${encodeURIComponent(appId)}/bundles/${encodeURIComponent(bundleId)}`,
+      { skipRetry: true }
     );
     return data;
   }
@@ -41,7 +42,7 @@ class BundlesRemoteDataSourceImpl extends BaseRemote implements BundlesRemoteDat
   ): Promise<ServiceResponse<{ url: string; redirect: boolean }>> {
     const { data } = await api.get<ServiceResponse<{ url: string; redirect: boolean }>>(
       `/v1/apps/${encodeURIComponent(appId)}/bundles/${encodeURIComponent(bundleId)}/download`,
-      { params: { redirect: options?.redirect ?? false } }
+      { params: { redirect: options?.redirect ?? false }, skipRetry: true }
     );
     return data;
   }
@@ -53,7 +54,7 @@ class BundlesRemoteDataSourceImpl extends BaseRemote implements BundlesRemoteDat
   ): Promise<ServiceResponse<{ url: string; redirect: boolean }>> {
     const { data } = await api.get<ServiceResponse<{ url: string; redirect: boolean }>>(
       `/v1/apps/${encodeURIComponent(appId)}/bundles/${encodeURIComponent(bundleId)}/assets/download`,
-      { params: { redirect: options?.redirect ?? false, kind: options?.kind } }
+      { params: { redirect: options?.redirect ?? false, kind: options?.kind }, skipRetry: true }
     );
     return data;
   }

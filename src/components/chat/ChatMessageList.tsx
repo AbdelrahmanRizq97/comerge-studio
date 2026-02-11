@@ -15,6 +15,8 @@ export type ChatMessageListProps = {
   messages: ChatMessage[];
   showTypingIndicator?: boolean;
   renderMessageContent?: ChatMessageBubbleProps['renderContent'];
+  onRetryMessage?: (messageId: string) => void;
+  isRetryingMessage?: (messageId: string) => boolean;
   contentStyle?: ViewStyle;
   bottomInset?: number;
   /**
@@ -33,6 +35,8 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       messages,
       showTypingIndicator = false,
       renderMessageContent,
+      onRetryMessage,
+      isRetryingMessage,
       contentStyle,
       bottomInset = 0,
       onNearBottomChange,
@@ -49,6 +53,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
     const data = React.useMemo(() => {
       return [...messages].reverse();
     }, [messages]);
+    const lastMessageId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
 
     const scrollToBottom = React.useCallback((options?: { animated?: boolean }) => {
       const animated = options?.animated ?? true;
@@ -121,7 +126,13 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
         ]}
         ItemSeparatorComponent={() => <View style={{ height: theme.spacing.sm }} />}
         renderItem={({ item }: { item: ChatMessage }) => (
-          <ChatMessageBubble message={item} renderContent={renderMessageContent} />
+          <ChatMessageBubble
+            message={item}
+            renderContent={renderMessageContent}
+            isLast={Boolean(lastMessageId && item.id === lastMessageId)}
+            retrying={isRetryingMessage?.(item.id) ?? false}
+            onRetry={onRetryMessage ? () => onRetryMessage(item.id) : undefined}
+          />
         )}
         ListHeaderComponent={
           <View>

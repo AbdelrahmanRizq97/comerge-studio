@@ -40,6 +40,8 @@ export type BubbleProps = {
 
   /** When true, renders a pulsing border ring. */
   isLoading?: boolean;
+  /** Visual tone for the pulsing loading ring. */
+  loadingBorderTone?: 'default' | 'warning';
 
   variant?: 'default' | 'danger';
 

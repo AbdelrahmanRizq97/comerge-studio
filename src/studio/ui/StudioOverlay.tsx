@@ -35,6 +35,7 @@ export type StudioOverlayProps = {
 
   // Bundle testing (glow + restore)
   isTesting: boolean;
+  isBaseBundleDownloading?: boolean;
   onRestoreBase: () => void | Promise<void>;
 
   // Merge requests
@@ -79,6 +80,7 @@ export function StudioOverlay({
   isOwner,
   shouldForkOnEdit,
   isTesting,
+  isBaseBundleDownloading = false,
   onRestoreBase,
   incomingMergeRequests,
   outgoingMergeRequests,
@@ -272,7 +274,6 @@ export function StudioOverlay({
               sendDisabled={chatSendDisabled}
               forking={chatForking}
               sending={chatSending}
-              autoFocusComposer={sheetOpen && activePage === 'chat'}
               shouldForkOnEdit={shouldForkOnEdit}
               attachments={chatAttachments}
               onRemoveAttachment={(idx) => setChatAttachments((prev) => prev.filter((_, i) => i !== idx))}
@@ -282,6 +283,8 @@ export function StudioOverlay({
               onNavigateHome={onNavigateHome}
               onStartDraw={startDraw}
               onSend={optimistic.onSend}
+              onRetryMessage={optimistic.onRetry}
+              isRetryingMessage={optimistic.isRetrying}
               queueItems={queueItemsForChat}
               onRemoveQueueItem={onRemoveQueueItem}
             />
@@ -295,7 +298,8 @@ export function StudioOverlay({
           ariaLabel={sheetOpen ? 'Hide studio' : 'Show studio'}
           badgeCount={incomingMergeRequests.length}
           onPress={toggleSheet}
-          isLoading={app?.status === 'editing'}
+          isLoading={app?.status === 'editing' || isBaseBundleDownloading}
+          loadingBorderTone={isBaseBundleDownloading ? 'warning' : 'default'}
         >
           <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
             <MergeIcon width={24} height={24} color={theme.colors.floatingContent} />
@@ -317,6 +321,7 @@ export function StudioOverlay({
         }}
         mergeRequest={confirmMr}
         toSummary={toMergeRequestSummary}
+        isBuilding={isBuildingMrTest}
         onConfirm={(mr) => onApprove?.(mr)}
         onTestFirst={handleTestMr}
       />

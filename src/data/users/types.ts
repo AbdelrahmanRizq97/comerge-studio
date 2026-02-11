@@ -2,7 +2,7 @@ export type UserStats = {
   userId: string;
   name: string | null;
   avatar: string | null;
-  approvedOpenedMergeRequests: number;
+  approvedOrMergedMergeRequests: number;
   totalOpenedMergeRequests: number;
 };
 

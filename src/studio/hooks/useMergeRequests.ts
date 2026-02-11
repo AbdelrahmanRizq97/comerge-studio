@@ -54,9 +54,13 @@ export function useMergeRequests(params: { appId: string }): UseMergeRequestsRes
   const { appId } = params;
   const [incoming, setIncoming] = React.useState<MergeRequest[]>([]);
   const [outgoing, setOutgoing] = React.useState<MergeRequest[]>([]);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(() => Boolean(appId));
   const [error, setError] = React.useState<Error | null>(null);
   const [creatorStatsById, setCreatorStatsById] = React.useState<Record<string, UserStats>>({});
+
+  React.useEffect(() => {
+    setLoading(Boolean(appId));
+  }, [appId]);
 
   const pollUntilMerged = React.useCallback(async (mrId: string) => {
     const startedAt = Date.now();
@@ -74,6 +78,7 @@ export function useMergeRequests(params: { appId: string }): UseMergeRequestsRes
       setIncoming([]);
       setOutgoing([]);
       setCreatorStatsById({});
+      setLoading(false);
       return;
     }
     setLoading(true);

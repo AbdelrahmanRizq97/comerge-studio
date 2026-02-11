@@ -1,6 +1,10 @@
 import * as React from 'react';
-import { AppState, Keyboard, Platform, View, type AppStateStatus } from 'react-native';
-import BottomSheet, { type BottomSheetBackgroundProps, type BottomSheetProps } from '@gorhom/bottom-sheet';
+import { AppState, Keyboard, View, type AppStateStatus } from 'react-native';
+import {
+  BottomSheetModal,
+  type BottomSheetBackgroundProps,
+  type BottomSheetModalProps,
+} from '@gorhom/bottom-sheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../../theme';
@@ -20,9 +24,9 @@ export type StudioBottomSheetProps = {
   snapPoints?: StudioSheetSnapPoints;
 
   /**
-   * Optional ref forwarding to control the BottomSheet imperatively.
+   * Optional ref forwarding to control the BottomSheetModal imperatively.
    */
-  sheetRef?: React.RefObject<BottomSheet | null>;
+  sheetRef?: React.RefObject<BottomSheetModal | null>;
 
   /**
    * Provide a custom background renderer (e.g. BlurView).
@@ -35,10 +39,10 @@ export type StudioBottomSheetProps = {
   children: React.ReactNode;
 
   /**
-   * Additional BottomSheet props
+   * Additional BottomSheetModal props
    */
   bottomSheetProps?: Omit<
-    BottomSheetProps,
+    BottomSheetModalProps,
     | 'ref'
     | 'index'
     | 'snapPoints'
@@ -48,6 +52,7 @@ export type StudioBottomSheetProps = {
     | 'bottomInset'
     | 'handleIndicatorStyle'
     | 'onChange'
+    | 'onDismiss'
     | 'children'
   >;
 };
@@ -63,30 +68,20 @@ export function StudioBottomSheet({
 }: StudioBottomSheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const internalSheetRef = React.useRef<BottomSheet | null>(null);
+  const internalSheetRef = React.useRef<BottomSheetModal | null>(null);
   const resolvedSheetRef = sheetRef ?? internalSheetRef;
-  const currentIndexRef = React.useRef<number>(open ? snapPoints.length - 1 : -1);
+  const resolvedSnapPoints = React.useMemo<(string | number)[]>(() => [...snapPoints], [snapPoints]);
+  const currentIndexRef = React.useRef<number>(open ? resolvedSnapPoints.length - 1 : -1);
   const lastAppStateRef = React.useRef<AppStateStatus>(AppState.currentState);
 
-  // Workaround: @gorhom/bottom-sheet can occasionally render empty content after app resume.
+  // Workaround: @gorhom/bottom-sheet can occasionally render empty content after app resume if the keyboard is open.
   React.useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      const prev = lastAppStateRef.current;
       lastAppStateRef.current = state;
 
       if (state === 'background' || state === 'inactive') {
         Keyboard.dismiss();
         return;
-      }
-
-      if (state !== 'active') return;
-      const sheet = resolvedSheetRef.current;
-      if (!sheet) return;
-      const idx = currentIndexRef.current;
-      if (open && idx >= 0) {
-        Keyboard.dismiss();
-        requestAnimationFrame(() => sheet.snapToIndex(idx));
-        setTimeout(() => sheet.snapToIndex(idx), 120);
       }
     });
     return () => sub.remove();
@@ -97,12 +92,11 @@ export function StudioBottomSheet({
     if (!sheet) return;
 
     if (open) {
-      // Open to the highest snap point by default.
-      sheet.snapToIndex(snapPoints.length - 1);
+      sheet.present();
     } else {
-      sheet.close();
+      sheet.dismiss();
     }
-  }, [open, resolvedSheetRef, snapPoints.length]);
+  }, [open, resolvedSheetRef, resolvedSnapPoints.length]);
 
   const handleChange = React.useCallback(
     (index: number) => {
@@ -113,13 +107,15 @@ export function StudioBottomSheet({
   );
 
   return (
-    <BottomSheet
+    <BottomSheetModal
       ref={resolvedSheetRef}
-      index={open ? snapPoints.length - 1 : -1}
-      snapPoints={snapPoints}
+      index={resolvedSnapPoints.length - 1}
+      snapPoints={resolvedSnapPoints}
       enableDynamicSizing={false}
       enablePanDownToClose
       enableContentPanningGesture={false}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
       backgroundComponent={(props: BottomSheetBackgroundProps) => (
         <StudioSheetBackground {...props} renderBackground={background?.renderBackground} />
@@ -127,11 +123,12 @@ export function StudioBottomSheet({
       topInset={insets.top}
       bottomInset={0}
       handleIndicatorStyle={{ backgroundColor: theme.colors.handleIndicator }}
-      onChange={handleChange}
       {...bottomSheetProps}
+      onChange={handleChange}
+      onDismiss={() => onOpenChange?.(false)}
     >
       <View style={{ flex: 1, overflow: 'hidden' }}>{children}</View>
-    </BottomSheet>
+    </BottomSheetModal>
   );
 }
 

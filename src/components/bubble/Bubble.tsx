@@ -26,6 +26,7 @@ import { DEFAULT_EDGE_PADDING, DEFAULT_OFFSET, DEFAULT_SIZE, ENTER_ROTATION_FROM
 import type { BubbleProps } from './types';
 import { useTheme } from '../../theme';
 import { ResettableLiquidGlassView } from '../utils/ResettableLiquidGlassView';
+import { withAlpha } from '../utils/color';
 
 const HIDDEN_OFFSET_X = 20;
 
@@ -59,6 +60,7 @@ export function Bubble({
   disabled = false,
   ariaLabel,
   isLoading = false,
+  loadingBorderTone = 'default',
   visible = true,
   badgeCount = 0,
   offset = DEFAULT_OFFSET,
@@ -84,6 +86,10 @@ export function Bubble({
     if (isDanger) return 'rgba(239, 68, 68, 0.9)';
     return theme.scheme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.6)';
   }, [backgroundColor, isDanger, theme.scheme]);
+  const warningRingColors = useMemo(
+    () => [withAlpha(theme.colors.warning, 0.35), withAlpha(theme.colors.warning, 1)] as const,
+    [theme.colors.warning]
+  );
 
   const translateX = useSharedValue(getHiddenTranslateX(size));
   const translateY = useSharedValue(getHiddenTranslateY(height));
@@ -214,11 +220,14 @@ export function Bubble({
   }));
 
   const borderAnimatedStyle = useAnimatedStyle(() => {
+    const isWarning = loadingBorderTone === 'warning';
     const borderColor = interpolateColor(
       borderPulse.value,
       [0, 1],
       isDanger
         ? ['rgba(239,68,68,0.4)', 'rgba(239,68,68,1)']
+        : isWarning
+          ? warningRingColors
         : theme.scheme === 'dark'
           ? ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.9)']
           : ['rgba(55,0,179,0.2)', 'rgba(55,0,179,0.9)']

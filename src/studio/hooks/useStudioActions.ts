@@ -5,6 +5,53 @@ import { appsRepository } from '../../data/apps/repository';
 import { agentRepository } from '../../data/agent/repository';
 import type { AttachmentMeta } from '../../data/attachment/types';
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableNetworkError(e: unknown): boolean {
+  const err = e as any;
+  const code = typeof err?.code === 'string' ? err.code : '';
+  const message = typeof err?.message === 'string' ? err.message : '';
+
+  if (code === 'ERR_NETWORK' || code === 'ECONNABORTED') return true;
+  if (message.toLowerCase().includes('network error')) return true;
+  if (message.toLowerCase().includes('timeout')) return true;
+
+  const status = typeof err?.response?.status === 'number' ? err.response.status : undefined;
+  if (status && (status === 429 || status >= 500)) return true;
+
+  return false;
+}
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  opts: { attempts: number; baseDelayMs: number; maxDelayMs: number }
+): Promise<T> {
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const retryable = isRetryableNetworkError(e);
+      if (!retryable || attempt >= opts.attempts) {
+        throw e;
+      }
+      const exp = Math.min(opts.maxDelayMs, opts.baseDelayMs * Math.pow(2, attempt - 1));
+      const jitter = Math.floor(Math.random() * 250);
+      await sleep(exp + jitter);
+    }
+  }
+  throw lastErr;
+}
+
+function generateIdempotencyKey(): string {
+  const rnd = globalThis.crypto?.randomUUID?.();
+  if (rnd) return `edit:${rnd}`;
+  return `edit:${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export type UseStudioActionsParams = {
   userId: string | null;
   /**
@@ -79,12 +126,19 @@ export function useStudioActions({
           attachmentMetas = await uploadAttachments({ threadId, appId: targetApp.id, dataUrls: attachments });
         }
 
-        const editResult = await agentRepository.editApp({
-          prompt,
-          thread_id: threadId,
-          app_id: targetApp.id,
-          attachments: attachmentMetas && attachmentMetas.length > 0 ? attachmentMetas : undefined,
-        });
+        const idempotencyKey = generateIdempotencyKey();
+        const editResult = await withRetry(
+          async () => {
+            return await agentRepository.editApp({
+              prompt,
+              thread_id: threadId,
+              app_id: targetApp.id,
+              attachments: attachmentMetas && attachmentMetas.length > 0 ? attachmentMetas : undefined,
+              idempotencyKey,
+            });
+          },
+          { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
+        );
         onEditQueued?.({
           queueItemId: editResult.queueItemId ?? null,
           queuePosition: editResult.queuePosition ?? null,

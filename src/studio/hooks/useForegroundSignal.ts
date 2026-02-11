@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
-import { getSupabaseClient } from '../../core/services/supabase';
+import { resetRealtimeState } from '../../core/services/supabase/realtimeManager';
 
 export function useForegroundSignal(enabled: boolean = true): number {
   const [signal, setSignal] = React.useState(0);
@@ -19,10 +19,8 @@ export function useForegroundSignal(enabled: boolean = true): number {
       if (!didResume) return;
 
       try {
-        const supabase = getSupabaseClient();
-        supabase?.realtime?.connect?.();
+        resetRealtimeState('APP_RESUME');
       } catch {
-        
       }
 
       setSignal((s) => s + 1);

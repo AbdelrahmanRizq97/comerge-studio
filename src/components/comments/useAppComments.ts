@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { appCommentsRepository } from '../../data/comments/repository';
 import type { AppComment } from '../../data/comments/types';
+import { trackSubmitComment } from '../../studio/analytics/track';
 
 export type UseAppCommentsResult = {
   comments: AppComment[];
@@ -58,7 +59,18 @@ export function useAppComments(appId: string | null): UseAppCommentsResult {
       try {
         const newComment = await appCommentsRepository.create(appId, { body: trimmed, commentType: 'general' });
         setComments((prev) => sortByCreatedAtAsc([...prev, newComment]));
+        await trackSubmitComment({
+          appId,
+          commentLength: trimmed.length,
+          success: true,
+        });
       } catch (e) {
+        await trackSubmitComment({
+          appId,
+          commentLength: trimmed.length,
+          success: false,
+          error: e,
+        });
         setError(e instanceof Error ? e : new Error(String(e)));
         throw e;
       } finally {

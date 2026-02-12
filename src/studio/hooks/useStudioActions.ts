@@ -4,6 +4,7 @@ import type { App } from '../../data/apps/types';
 import { appsRepository } from '../../data/apps/repository';
 import { agentRepository } from '../../data/agent/repository';
 import type { AttachmentMeta } from '../../data/attachment/types';
+import { trackEditApp, trackRemixApp } from '../analytics/track';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -104,14 +105,22 @@ export function useStudioActions({
 
       setSending(true);
       setError(null);
+      let forkSucceeded = false;
       try {
         let targetApp = app;
+        const sourceAppId = app.id;
 
         if (shouldForkOnEdit) {
           setForking(true);
-          const sourceAppId = app.id;
           const forked = await appsRepository.fork(app.id, {});
           targetApp = forked;
+          await trackRemixApp({
+            appId: forked.id,
+            sourceAppId,
+            threadId: forked.threadId ?? undefined,
+            success: true,
+          });
+          forkSucceeded = true;
           // For fork+edit, keep rendering the original app until the edit completes on the fork.
           onForkedApp?.(forked.id, { keepRenderingAppId: sourceAppId });
         }
@@ -143,9 +152,33 @@ export function useStudioActions({
           queueItemId: editResult.queueItemId ?? null,
           queuePosition: editResult.queuePosition ?? null,
         });
+        await trackEditApp({
+          appId: targetApp.id,
+          threadId,
+          promptLength: prompt.trim().length,
+          success: true,
+        });
       } catch (e) {
         const err = e instanceof Error ? e : new Error(String(e));
         setError(err);
+        if (shouldForkOnEdit && !forkSucceeded && app?.id) {
+          await trackRemixApp({
+            appId: app.id,
+            sourceAppId: app.id,
+            threadId: app.threadId ?? undefined,
+            success: false,
+            error: err,
+          });
+        }
+        if (app?.id && app.threadId) {
+          await trackEditApp({
+            appId: app.id,
+            threadId: app.threadId,
+            promptLength: prompt.trim().length,
+            success: false,
+            error: err,
+          });
+        }
         throw err;
       } finally {
         setForking(false);

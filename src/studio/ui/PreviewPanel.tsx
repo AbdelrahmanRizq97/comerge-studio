@@ -12,6 +12,7 @@ import { PreviewMetaSection } from './preview-panel/PreviewMetaSection';
 import { PreviewCustomizeSection } from './preview-panel/PreviewCustomizeSection';
 import { PreviewCollaborateSection } from './preview-panel/PreviewCollaborateSection';
 import { usePreviewPanelData } from './preview-panel/usePreviewPanelData';
+import { trackShareApp } from '../analytics/track';
 
 export type PreviewPanelProps = {
   app: App | null;
@@ -84,8 +85,17 @@ export function PreviewPanel({
               url: shareUrl,
             };
       await Share.share(payload);
+      await trackShareApp({
+        appId: app.id,
+        success: true,
+      });
     } catch (error) {
       log.warn('PreviewPanel share failed', error);
+      await trackShareApp({
+        appId: app.id,
+        success: false,
+        error,
+      });
     }
   }, [app]);
 

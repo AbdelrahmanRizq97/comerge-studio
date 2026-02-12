@@ -104,6 +104,7 @@ export function usePreviewPanelData(params: {
     initialComments: commentCountOverride ?? insights.comments,
     initialIsLiked: Boolean(app?.isLiked),
     onOpenComments,
+    interactionSource: 'preview_panel',
   });
 
   const canSubmitMergeRequest = React.useMemo(() => {

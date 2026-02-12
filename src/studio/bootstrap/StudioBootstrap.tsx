@@ -16,8 +16,14 @@ export type StudioBootstrapProps = UseStudioBootstrapOptions & {
   renderError?: (error: Error) => React.ReactNode;
 };
 
-export function StudioBootstrap({ children, fallback, renderError, clientKey }: StudioBootstrapProps) {
-  const { ready, error, userId } = useStudioBootstrap({ clientKey });
+export function StudioBootstrap({
+  children,
+  fallback,
+  renderError,
+  clientKey,
+  analyticsEnabled,
+}: StudioBootstrapProps) {
+  const { ready, error, userId } = useStudioBootstrap({ clientKey, analyticsEnabled });
 
   if (error) {
     return (

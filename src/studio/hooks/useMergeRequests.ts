@@ -5,6 +5,11 @@ import { mergeRequestsRepository } from '../../data/merge-requests/repository';
 import type { MergeRequestSummary } from '../../components/models/types';
 import { usersRepository } from '../../data/users/repository';
 import type { UserStats } from '../../data/users/types';
+import {
+  trackApproveMergeRequest,
+  trackOpenMergeRequest,
+  trackRejectMergeRequest,
+} from '../analytics/track';
 
 export type MergeRequestLists = {
   /**
@@ -118,27 +123,71 @@ export function useMergeRequests(params: { appId: string }): UseMergeRequestsRes
 
   React.useEffect(() => {
     void refresh();
-  }, [refresh]);
+  }, [appId, refresh]);
 
   const openMergeRequest = React.useCallback(async (sourceAppId: string) => {
-    const mr = await mergeRequestsRepository.open({ sourceAppId });
-    await refresh();
-    return mr;
+    try {
+      const mr = await mergeRequestsRepository.open({ sourceAppId });
+      await refresh();
+      await trackOpenMergeRequest({
+        appId,
+        mergeRequestId: mr.id,
+        success: true,
+      });
+      return mr;
+    } catch (error) {
+      await trackOpenMergeRequest({
+        appId,
+        success: false,
+        error,
+      });
+      throw error;
+    }
   }, [refresh]);
 
   const approve = React.useCallback(async (mrId: string) => {
-    const mr = await mergeRequestsRepository.update(mrId, { status: 'approved' });
-    await refresh();
-    const merged = await pollUntilMerged(mrId);
-    await refresh();
-    return merged ?? mr;
-  }, [pollUntilMerged, refresh]);
+    try {
+      const mr = await mergeRequestsRepository.update(mrId, { status: 'approved' });
+      await refresh();
+      const merged = await pollUntilMerged(mrId);
+      await refresh();
+      await trackApproveMergeRequest({
+        appId,
+        mergeRequestId: mrId,
+        success: true,
+      });
+      return merged ?? mr;
+    } catch (error) {
+      await trackApproveMergeRequest({
+        appId,
+        mergeRequestId: mrId,
+        success: false,
+        error,
+      });
+      throw error;
+    }
+  }, [appId, pollUntilMerged, refresh]);
 
   const reject = React.useCallback(async (mrId: string) => {
-    const mr = await mergeRequestsRepository.update(mrId, { status: 'rejected' });
-    await refresh();
-    return mr;
-  }, [refresh]);
+    try {
+      const mr = await mergeRequestsRepository.update(mrId, { status: 'rejected' });
+      await refresh();
+      await trackRejectMergeRequest({
+        appId,
+        mergeRequestId: mrId,
+        success: true,
+      });
+      return mr;
+    } catch (error) {
+      await trackRejectMergeRequest({
+        appId,
+        mergeRequestId: mrId,
+        success: false,
+        error,
+      });
+      throw error;
+    }
+  }, [appId, refresh]);
 
   const toSummary = React.useCallback((mr: MergeRequest): MergeRequestSummary => {
     const stats = creatorStatsById[mr.createdBy];

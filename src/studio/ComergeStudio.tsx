@@ -24,6 +24,7 @@ export type ComergeStudioProps = {
   appId: string;
   clientKey: string;
   appKey?: string;
+  analyticsEnabled?: boolean;
   onNavigateHome?: () => void;
   style?: ViewStyle;
   showBubble?: boolean;
@@ -36,6 +37,7 @@ export function ComergeStudio({
   appId,
   clientKey,
   appKey = 'MicroMain',
+  analyticsEnabled,
   onNavigateHome,
   style,
   showBubble = true,
@@ -57,7 +59,11 @@ export function ComergeStudio({
   const captureTargetRef = React.useRef<View | null>(null);
 
   return (
-    <StudioBootstrap clientKey={clientKey} fallback={<View style={{ flex: 1 }} />}>
+    <StudioBootstrap
+      clientKey={clientKey}
+      analyticsEnabled={analyticsEnabled}
+      fallback={<View style={{ flex: 1 }} />}
+    >
       {({ userId }) => (
         <BottomSheetModalProvider>
           <LiquidGlassResetProvider resetTriggers={[appId, activeAppId, runtimeAppId]}>

@@ -3,6 +3,8 @@ import * as Haptics from 'expo-haptics';
 
 import type { App } from '../../data/apps/types';
 import { appLikesRepository } from '../../data/likes/repository';
+import type { InteractionSource } from '../analytics/events';
+import { trackLikeApp, trackOpenComments, trackUnlikeApp } from '../analytics/track';
 
 export type UseAppStatsParams = {
   appId: string;
@@ -11,6 +13,7 @@ export type UseAppStatsParams = {
   initialForks?: number;
   initialIsLiked?: boolean;
   onOpenComments?: () => void;
+  interactionSource?: InteractionSource;
 };
 
 export type AppStatsResult = {
@@ -30,6 +33,7 @@ export function useAppStats({
   initialForks = 0,
   initialIsLiked = false,
   onOpenComments,
+  interactionSource = 'unknown',
 }: UseAppStatsParams): AppStatsResult {
   const [likeCount, setLikeCount] = React.useState(initialLikes);
   const [commentCount, setCommentCount] = React.useState(initialComments);
@@ -77,15 +81,22 @@ export function useAppStats({
       if (newIsLiked) {
         const res = await appLikesRepository.create(appId, {});
         if (typeof res.stats?.total === 'number') setLikeCount(Math.max(0, res.stats.total));
+        await trackLikeApp({ appId, source: interactionSource, success: true });
       } else {
         const res = await appLikesRepository.removeMine(appId);
         if (typeof res.stats?.total === 'number') setLikeCount(Math.max(0, res.stats.total));
+        await trackUnlikeApp({ appId, source: interactionSource, success: true });
       }
     } catch (e) {
       setIsLiked(!newIsLiked);
       setLikeCount((prev) => Math.max(0, prev + (newIsLiked ? -1 : 1)));
+      if (newIsLiked) {
+        await trackLikeApp({ appId, source: interactionSource, success: false, error: e });
+      } else {
+        await trackUnlikeApp({ appId, source: interactionSource, success: false, error: e });
+      }
     }
-  }, [appId, isLiked, likeCount]);
+  }, [appId, interactionSource, isLiked, likeCount]);
 
   const handleOpenComments = React.useCallback(() => {
     if (!appId) return;
@@ -93,8 +104,9 @@ export function useAppStats({
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
     }
+    void trackOpenComments({ appId, source: interactionSource });
     onOpenComments?.();
-  }, [appId, onOpenComments]);
+  }, [appId, interactionSource, onOpenComments]);
 
   return { likeCount, commentCount, forkCount, isLiked, setCommentCount, handleLike, handleOpenComments };
 }

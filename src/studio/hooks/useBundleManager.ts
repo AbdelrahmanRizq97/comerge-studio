@@ -5,6 +5,7 @@ import { unzip } from 'react-native-zip-archive';
 
 import type { Platform as BundlePlatform, Bundle, BundleAsset, BundleStatus } from '../../data/apps/bundles/types';
 import { bundlesRepository } from '../../data/apps/bundles/repository';
+import { trackTestBundle } from '../analytics/track';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -762,7 +763,22 @@ export function useBundleManager({
   }, [load]);
 
   const loadTest = React.useCallback(async (src: BundleSource) => {
-    await load(src, 'test');
+    try {
+      await load(src, 'test');
+      await trackTestBundle({
+        appId: src.appId,
+        commitId: src.commitId ?? undefined,
+        success: true,
+      });
+    } catch (error) {
+      await trackTestBundle({
+        appId: src.appId,
+        commitId: src.commitId ?? undefined,
+        success: false,
+        error,
+      });
+      throw error;
+    }
   }, [load]);
 
   const restoreBase = React.useCallback(async () => {

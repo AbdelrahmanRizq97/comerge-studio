@@ -16,6 +16,7 @@ import { StudioOverlay } from './ui/StudioOverlay';
 import { LiquidGlassResetProvider } from '../components/utils/liquidGlassReset';
 import { useEditQueue } from './hooks/useEditQueue';
 import { useEditQueueActions } from './hooks/useEditQueueActions';
+import { useAgentRunProgress } from './hooks/useAgentRunProgress';
 import { appsRepository } from '../data/apps/repository';
 import type { SyncUpstreamStatus } from '../data/apps/types';
 
@@ -26,6 +27,7 @@ export type ComergeStudioProps = {
   onNavigateHome?: () => void;
   style?: ViewStyle;
   showBubble?: boolean;
+  enableAgentProgress?: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
   embeddedBaseBundles?: EmbeddedBaseBundles;
 };
@@ -37,6 +39,7 @@ export function ComergeStudio({
   onNavigateHome,
   style,
   showBubble = true,
+  enableAgentProgress = true,
   studioControlOptions,
   embeddedBaseBundles,
 }: ComergeStudioProps) {
@@ -72,6 +75,7 @@ export function ComergeStudio({
               captureTargetRef={captureTargetRef}
               style={style}
               showBubble={showBubble}
+              enableAgentProgress={enableAgentProgress}
               studioControlOptions={studioControlOptions}
               embeddedBaseBundles={embeddedBaseBundles}
             />
@@ -96,6 +100,7 @@ type InnerProps = {
   captureTargetRef: React.RefObject<View | null>;
   style?: ViewStyle;
   showBubble: boolean;
+  enableAgentProgress: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
   embeddedBaseBundles?: EmbeddedBaseBundles;
 };
@@ -114,6 +119,7 @@ function ComergeStudioInner({
   captureTargetRef,
   style,
   showBubble,
+  enableAgentProgress,
   studioControlOptions,
   embeddedBaseBundles,
 }: InnerProps) {
@@ -179,6 +185,7 @@ function ComergeStudioInner({
   const threadId = app?.threadId ?? '';
   const thread = useThreadMessages(threadId);
   const editQueue = useEditQueue(activeAppId);
+  const agentProgress = useAgentRunProgress(threadId, { enabled: enableAgentProgress });
   const editQueueActions = useEditQueueActions(activeAppId);
   const [lastEditQueueInfo, setLastEditQueueInfo] = React.useState<{
     queueItemId?: string | null;
@@ -251,14 +258,20 @@ function ComergeStudioInner({
   const [upstreamSyncStatus, setUpstreamSyncStatus] = React.useState<SyncUpstreamStatus | null>(null);
   const isMrTestBuildInProgress = bundle.loading && bundle.loadingMode === 'test';
   const isBaseBundleDownloading = bundle.loading && bundle.loadingMode === 'base' && !bundle.isTesting;
+  const runtimePreparingText =
+    bundle.bundleStatus === 'pending'
+      ? 'Bundling app… this may take a few minutes'
+      : 'Preparing app…';
 
   // Show typing dots when the last message isn't an outcome (agent still working).
   const chatShowTypingIndicator = React.useMemo(() => {
+    if (agentProgress.hasLiveProgress) return false;
     if (!thread.raw || thread.raw.length === 0) return false;
     const last = thread.raw[thread.raw.length - 1];
     const payloadType = typeof (last.payload as any)?.type === 'string' ? String((last.payload as any).type) : undefined;
     return payloadType !== 'outcome';
-  }, [thread.raw]);
+  }, [agentProgress.hasLiveProgress, thread.raw]);
+  const showChatProgress = agentProgress.hasLiveProgress || Boolean(agentProgress.view.bundle?.active);
 
   React.useEffect(() => {
     updateLastEditQueueInfo(null);
@@ -311,6 +324,7 @@ function ComergeStudioInner({
         <RuntimeRenderer
           appKey={appKey}
           bundlePath={bundle.bundlePath}
+          preparingText={runtimePreparingText}
           forcePreparing={showPostEditPreparing}
           renderToken={bundle.renderToken}
           allowInitialPreparing={!embeddedBaseBundles}
@@ -377,6 +391,7 @@ function ComergeStudioInner({
           onSendChat={(text, attachments) => actions.sendEdit({ prompt: text, attachments })}
           chatQueueItems={chatQueueItems}
           onRemoveQueueItem={(id) => editQueueActions.cancel(id)}
+          chatProgress={showChatProgress ? agentProgress.view : null}
           onNavigateHome={onNavigateHome}
           showBubble={showBubble}
           studioControlOptions={studioControlOptions}

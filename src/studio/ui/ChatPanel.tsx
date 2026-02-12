@@ -12,6 +12,10 @@ import { Text } from '../../components/primitives/Text';
 import type { ChatMessage } from '../../components/models/types';
 import type { EditQueueItem } from '../../data/apps/edit-queue/types';
 import { ChatQueue } from '../../components/chat/ChatQueue';
+import { AgentProgressCard } from '../../components/chat/AgentProgressCard';
+import { BundleProgressCard } from '../../components/chat/BundleProgressCard';
+import type { AgentRunProgressView } from '../hooks/useAgentRunProgress';
+import { useTheme } from '../../theme';
 
 export type ChatPanelProps = {
   title?: string;
@@ -34,6 +38,7 @@ export type ChatPanelProps = {
   isRetryingMessage?: (messageId: string) => boolean;
   queueItems?: EditQueueItem[];
   onRemoveQueueItem?: (id: string) => void;
+  progress?: AgentRunProgressView | null;
 };
 
 export function ChatPanel({
@@ -57,7 +62,9 @@ export function ChatPanel({
   isRetryingMessage,
   queueItems = [],
   onRemoveQueueItem,
+  progress = null,
 }: ChatPanelProps) {
+  const theme = useTheme();
   const listRef = React.useRef<ChatMessageListRef | null>(null);
   const [nearBottom, setNearBottom] = React.useState(true);
 
@@ -131,8 +138,12 @@ export function ChatPanel({
     );
   }
 
-  const queueTop = queueItems.length > 0 ? (
-    <ChatQueue items={queueItems} onRemove={onRemoveQueueItem} />
+  const bundleProgress = progress?.bundle ?? null;
+  const queueTop = progress || queueItems.length > 0 ? (
+    <View style={{ gap: theme.spacing.sm }}>
+      {progress ? (bundleProgress ? <BundleProgressCard progress={bundleProgress} /> : <AgentProgressCard progress={progress} />) : null}
+      {queueItems.length > 0 ? <ChatQueue items={queueItems} onRemove={onRemoveQueueItem} /> : null}
+    </View>
   ) : null;
 
   return (

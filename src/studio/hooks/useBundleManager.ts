@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Asset } from 'expo-asset';
 import { unzip } from 'react-native-zip-archive';
 
-import type { Platform as BundlePlatform, Bundle, BundleAsset } from '../../data/apps/bundles/types';
+import type { Platform as BundlePlatform, Bundle, BundleAsset, BundleStatus } from '../../data/apps/bundles/types';
 import { bundlesRepository } from '../../data/apps/bundles/repository';
 
 function sleep(ms: number): Promise<void> {
@@ -74,6 +74,7 @@ export type BundleLoadState = {
   renderToken: number;
   loading: boolean;
   loadingMode: 'base' | 'test' | null;
+  bundleStatus: BundleStatus | null;
   statusLabel: string | null;
   error: string | null;
   /**
@@ -473,7 +474,8 @@ async function pollBundle(appId: string, bundleId: string, opts: { timeoutMs: nu
 async function resolveBundlePath(
   src: BundleSource,
   platform: BundlePlatform,
-  mode: 'base' | 'test'
+  mode: 'base' | 'test',
+  onStatus?: (status: BundleStatus) => void
 ): Promise<{ bundlePath: string; label: string; bundle: Bundle }> {
   const { appId, commitId } = src;
   const dir = bundlesCacheDir();
@@ -489,11 +491,13 @@ async function resolveBundlePath(
     },
     { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
   );
+  onStatus?.(initiate.status);
 
   const finalBundle =
     initiate.status === 'succeeded' || initiate.status === 'failed'
       ? initiate
       : await pollBundle(appId, initiate.id, { timeoutMs: 3 * 60 * 1000, intervalMs: 1200 });
+  onStatus?.(finalBundle.status);
 
   if (finalBundle.status === 'failed') {
     throw new Error('Bundle build failed.');
@@ -546,6 +550,7 @@ export function useBundleManager({
   const [renderToken, setRenderToken] = React.useState(0);
   const [loading, setLoading] = React.useState(false);
   const [loadingMode, setLoadingMode] = React.useState<'base' | 'test' | null>(null);
+  const [bundleStatus, setBundleStatus] = React.useState<BundleStatus | null>(null);
   const [statusLabel, setStatusLabel] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isTesting, setIsTesting] = React.useState(false);
@@ -678,6 +683,7 @@ export function useBundleManager({
     activeLoadModeRef.current = mode;
     setLoading(true);
     setLoadingMode(mode);
+    setBundleStatus(null);
     setError(null);
     setStatusLabel(mode === 'test' ? 'Loading test bundle…' : 'Loading latest build…');
 
@@ -686,10 +692,13 @@ export function useBundleManager({
     }
 
     try {
-      const { bundlePath: path, bundle } = await resolveBundlePath(src, platform, mode);
+      const { bundlePath: path, bundle } = await resolveBundlePath(src, platform, mode, (status) => {
+        setBundleStatus(status);
+      });
       if (mode === 'base' && opId !== baseOpIdRef.current) return;
       if (mode === 'test' && opId !== testOpIdRef.current) return;
       if (desiredModeRef.current !== mode) return;
+      setBundleStatus(bundle.status);
       setBundlePath(path);
       const fingerprint = bundle.checksumSha256 ?? `id:${bundle.id}`;
 
@@ -735,6 +744,7 @@ export function useBundleManager({
     } catch (e) {
       if (mode === 'base' && opId !== baseOpIdRef.current) return;
       if (mode === 'test' && opId !== testOpIdRef.current) return;
+      setBundleStatus('failed');
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
       setStatusLabel(null);
@@ -772,7 +782,19 @@ export function useBundleManager({
     void loadBase();
   }, [base.appId, base.commitId, platform, canRequestLatest, loadBase]);
 
-  return { bundlePath, renderToken, loading, loadingMode, statusLabel, error, isTesting, loadBase, loadTest, restoreBase };
+  return {
+    bundlePath,
+    renderToken,
+    loading,
+    loadingMode,
+    bundleStatus,
+    statusLabel,
+    error,
+    isTesting,
+    loadBase,
+    loadTest,
+    restoreBase,
+  };
 }
 
 

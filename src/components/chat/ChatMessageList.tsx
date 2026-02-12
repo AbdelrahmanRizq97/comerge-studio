@@ -54,6 +54,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       return [...messages].reverse();
     }, [messages]);
     const lastMessageId = messages.length > 0 ? messages[messages.length - 1]!.id : null;
+    const keyExtractor = React.useCallback((m: ChatMessage) => m.id, []);
 
     const scrollToBottom = React.useCallback((options?: { animated?: boolean }) => {
       const animated = options?.animated ?? true;
@@ -99,51 +100,70 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       return undefined;
     }, [showTypingIndicator, scrollToBottom]);
 
+    const handleContentSizeChange = React.useCallback(() => {
+      if (initialScrollDoneRef.current) return;
+      initialScrollDoneRef.current = true;
+      lastMessageIdRef.current = messages.length > 0 ? messages[messages.length - 1]!.id : null;
+      nearBottomRef.current = true;
+      onNearBottomChange?.(true);
+      requestAnimationFrame(() => scrollToBottom({ animated: false }));
+    }, [messages, onNearBottomChange, scrollToBottom]);
+
+    const contentContainerStyle = React.useMemo(
+      () => [
+        {
+          paddingHorizontal: theme.spacing.lg,
+          paddingVertical: theme.spacing.sm,
+        },
+        contentStyle,
+      ],
+      [contentStyle, theme.spacing.lg, theme.spacing.sm]
+    );
+
+    const renderSeparator = React.useCallback(() => <View style={{ height: theme.spacing.sm }} />, [theme.spacing.sm]);
+
+    const listHeader = React.useMemo(
+      () => (
+        <View>
+          {showTypingIndicator ? (
+            <View style={{ marginTop: theme.spacing.sm, alignSelf: 'flex-start', paddingHorizontal: theme.spacing.lg }}>
+              <TypingIndicator />
+            </View>
+          ) : null}
+          {bottomInset > 0 ? <View style={{ height: bottomInset }} /> : null}
+        </View>
+      ),
+      [bottomInset, showTypingIndicator, theme.spacing.lg, theme.spacing.sm]
+    );
+
+    const renderItem = React.useCallback(
+      ({ item }: { item: ChatMessage }) => (
+        <ChatMessageBubble
+          message={item}
+          renderContent={renderMessageContent}
+          isLast={Boolean(lastMessageId && item.id === lastMessageId)}
+          retrying={isRetryingMessage?.(item.id) ?? false}
+          onRetryMessage={onRetryMessage}
+        />
+      ),
+      [isRetryingMessage, lastMessageId, onRetryMessage, renderMessageContent]
+    );
+
     return (
       <BottomSheetFlatList
         ref={listRef}
         inverted
         data={data}
-        keyExtractor={(m: ChatMessage) => m.id}
+        keyExtractor={keyExtractor}
         keyboardShouldPersistTaps="handled"
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => {
-          if (initialScrollDoneRef.current) return;
-          initialScrollDoneRef.current = true;
-          lastMessageIdRef.current = messages.length > 0 ? messages[messages.length - 1]!.id : null;
-          nearBottomRef.current = true;
-          onNearBottomChange?.(true);
-          requestAnimationFrame(() => scrollToBottom({ animated: false }));
-        }}
-        contentContainerStyle={[
-          {
-            paddingHorizontal: theme.spacing.lg,
-            paddingVertical: theme.spacing.sm,
-          },
-          contentStyle,
-        ]}
-        ItemSeparatorComponent={() => <View style={{ height: theme.spacing.sm }} />}
-        renderItem={({ item }: { item: ChatMessage }) => (
-          <ChatMessageBubble
-            message={item}
-            renderContent={renderMessageContent}
-            isLast={Boolean(lastMessageId && item.id === lastMessageId)}
-            retrying={isRetryingMessage?.(item.id) ?? false}
-            onRetry={onRetryMessage ? () => onRetryMessage(item.id) : undefined}
-          />
-        )}
-        ListHeaderComponent={
-          <View>
-            {showTypingIndicator ? (
-              <View style={{ marginTop: theme.spacing.sm, alignSelf: 'flex-start', paddingHorizontal: theme.spacing.lg }}>
-                <TypingIndicator />
-              </View>
-            ) : null}
-            {bottomInset > 0 ? <View style={{ height: bottomInset }} /> : null}
-          </View>
-        }
+        onContentSizeChange={handleContentSizeChange}
+        contentContainerStyle={contentContainerStyle}
+        ItemSeparatorComponent={renderSeparator}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
       />
     );
   }

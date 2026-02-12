@@ -9,6 +9,10 @@ export type RuntimeRendererProps = {
   appKey: string;
   bundlePath: string | null;
   /**
+   * Loading text shown while runtime cannot render a bundle yet.
+   */
+  preparingText?: string;
+  /**
    * When true, show the "Preparing app…" UI even if a previous bundle is available.
    * Used to avoid briefly rendering an outdated bundle during post-edit base refresh.
    */
@@ -28,6 +32,7 @@ export type RuntimeRendererProps = {
 export function RuntimeRenderer({
   appKey,
   bundlePath,
+  preparingText,
   forcePreparing,
   renderToken,
   style,
@@ -48,7 +53,7 @@ export function RuntimeRenderer({
 
     return (
       <View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }, style]}>
-        <Text variant="bodyMuted">Preparing app…</Text>
+        <Text variant="bodyMuted">{preparingText ?? 'Preparing app…'}</Text>
       </View>
     );
   }

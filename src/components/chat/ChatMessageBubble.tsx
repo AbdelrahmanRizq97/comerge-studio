@@ -17,11 +17,33 @@ export type ChatMessageBubbleProps = {
   renderContent?: (message: ChatMessage) => React.ReactNode;
   isLast?: boolean;
   retrying?: boolean;
-  onRetry?: () => void;
+  onRetryMessage?: (messageId: string) => void;
   style?: ViewStyle;
 };
 
-export function ChatMessageBubble({ message, renderContent, isLast, retrying, onRetry, style }: ChatMessageBubbleProps) {
+function areMessageMetaEqual(a: ChatMessage['meta'], b: ChatMessage['meta']): boolean {
+  if (a === b) return true;
+  if (!a || !b) return a === b;
+  return (
+    a.kind === b.kind &&
+    a.event === b.event &&
+    a.status === b.status &&
+    a.mergeRequestId === b.mergeRequestId &&
+    a.sourceAppId === b.sourceAppId &&
+    a.targetAppId === b.targetAppId &&
+    a.appId === b.appId &&
+    a.threadId === b.threadId
+  );
+}
+
+function ChatMessageBubbleInner({
+  message,
+  renderContent,
+  isLast,
+  retrying,
+  onRetryMessage,
+  style,
+}: ChatMessageBubbleProps) {
   const theme = useTheme();
   const metaEvent = message.meta?.event ?? null;
   const metaStatus = message.meta?.status ?? null;
@@ -41,8 +63,11 @@ export function ChatMessageBubble({ message, renderContent, isLast, retrying, on
 
   const bodyColor =
     metaStatus === 'success' ? theme.colors.success : metaStatus === 'error' ? theme.colors.danger : undefined;
-  const showRetry = Boolean(onRetry) && isLast && metaStatus === 'error' && message.author === 'human';
+  const showRetry = Boolean(onRetryMessage) && isLast && metaStatus === 'error' && message.author === 'human';
   const retryLabel = retrying ? 'Retrying...' : 'Retry';
+  const handleRetryPress = React.useCallback(() => {
+    onRetryMessage?.(message.id);
+  }, [message.id, onRetryMessage]);
 
   return (
     <View style={[align, style]}>
@@ -77,7 +102,7 @@ export function ChatMessageBubble({ message, renderContent, isLast, retrying, on
           <Button
             variant="ghost"
             size="sm"
-            onPress={onRetry}
+            onPress={handleRetryPress}
             disabled={retrying}
             style={{ borderColor: theme.colors.danger }}
             accessibilityLabel="Retry send"
@@ -99,5 +124,24 @@ export function ChatMessageBubble({ message, renderContent, isLast, retrying, on
     </View>
   );
 }
+
+function areEqual(prev: ChatMessageBubbleProps, next: ChatMessageBubbleProps): boolean {
+  return (
+    prev.message.id === next.message.id &&
+    prev.message.author === next.message.author &&
+    prev.message.content === next.message.content &&
+    prev.message.kind === next.message.kind &&
+    String(prev.message.createdAt) === String(next.message.createdAt) &&
+    areMessageMetaEqual(prev.message.meta, next.message.meta) &&
+    prev.renderContent === next.renderContent &&
+    prev.isLast === next.isLast &&
+    prev.retrying === next.retrying &&
+    prev.onRetryMessage === next.onRetryMessage &&
+    prev.style === next.style
+  );
+}
+
+export const ChatMessageBubble = React.memo(ChatMessageBubbleInner, areEqual);
+ChatMessageBubble.displayName = 'ChatMessageBubble';
 
 

@@ -64,6 +64,7 @@ export type StudioOverlayProps = {
   onSendChat: (text: string, attachments?: string[]) => void | Promise<void>;
   chatQueueItems?: import('../../data/apps/edit-queue/types').EditQueueItem[];
   onRemoveQueueItem?: (id: string) => void;
+  chatProgress?: import('../hooks/useAgentRunProgress').AgentRunProgressView | null;
 
   // Navigation callbacks
   onNavigateHome?: () => void;
@@ -105,6 +106,7 @@ export function StudioOverlay({
   onSendChat,
   chatQueueItems,
   onRemoveQueueItem,
+  chatProgress,
   onNavigateHome,
   showBubble,
   studioControlOptions,
@@ -287,6 +289,7 @@ export function StudioOverlay({
               isRetryingMessage={optimistic.isRetrying}
               queueItems={queueItemsForChat}
               onRemoveQueueItem={onRemoveQueueItem}
+              progress={chatProgress}
             />
           }
         />

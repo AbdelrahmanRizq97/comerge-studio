@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { Platform as RNPlatform, View, type ViewStyle } from 'react-native';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import type { ComergeRuntimeSystemEventEnvelope } from '@comergehq/runtime';
+import { isSystemEventEnvelope } from '@comergehq/runtime';
 
 import type { Platform as BundlePlatform } from '../data/apps/bundles/types';
 import { StudioBootstrap } from './bootstrap/StudioBootstrap';
@@ -19,6 +21,7 @@ import { useEditQueueActions } from './hooks/useEditQueueActions';
 import { useAgentRunProgress } from './hooks/useAgentRunProgress';
 import { appsRepository } from '../data/apps/repository';
 import type { SyncUpstreamStatus } from '../data/apps/types';
+import { log } from '../core/logger';
 
 export type ComergeStudioProps = {
   appId: string;
@@ -31,6 +34,7 @@ export type ComergeStudioProps = {
   enableAgentProgress?: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
   embeddedBaseBundles?: EmbeddedBaseBundles;
+  onSystemEvent?: (event: ComergeRuntimeSystemEventEnvelope) => void;
 };
 
 export function ComergeStudio({
@@ -44,6 +48,7 @@ export function ComergeStudio({
   enableAgentProgress = true,
   studioControlOptions,
   embeddedBaseBundles,
+  onSystemEvent,
 }: ComergeStudioProps) {
   const [activeAppId, setActiveAppId] = React.useState(appId);
   const [runtimeAppId, setRuntimeAppId] = React.useState(appId);
@@ -84,6 +89,7 @@ export function ComergeStudio({
               enableAgentProgress={enableAgentProgress}
               studioControlOptions={studioControlOptions}
               embeddedBaseBundles={embeddedBaseBundles}
+              onSystemEvent={onSystemEvent}
             />
           </LiquidGlassResetProvider>
         </BottomSheetModalProvider>
@@ -109,6 +115,7 @@ type InnerProps = {
   enableAgentProgress: boolean;
   studioControlOptions?: import('@comergehq/studio-control').StudioControlOptions;
   embeddedBaseBundles?: EmbeddedBaseBundles;
+  onSystemEvent?: (event: ComergeRuntimeSystemEventEnvelope) => void;
 };
 
 function ComergeStudioInner({
@@ -128,6 +135,7 @@ function ComergeStudioInner({
   enableAgentProgress,
   studioControlOptions,
   embeddedBaseBundles,
+  onSystemEvent,
 }: InnerProps) {
   const { app, loading: appLoading } = useApp(activeAppId);
   const { app: runtimeAppFromHook } = useApp(runtimeAppId, { enabled: runtimeAppId !== activeAppId });
@@ -330,10 +338,23 @@ function ComergeStudioInner({
         <RuntimeRenderer
           appKey={appKey}
           bundlePath={bundle.bundlePath}
+          runtimeId={`app:${runtimeAppId}`}
           preparingText={runtimePreparingText}
           forcePreparing={showPostEditPreparing}
           renderToken={bundle.renderToken}
           allowInitialPreparing={!embeddedBaseBundles}
+          onMessage={(messageEvent) => {
+            const envelope = messageEvent.envelope;
+            if (!isSystemEventEnvelope(envelope)) {
+              log.debug('[runtime-bridge] ignored non-system envelope', {
+                type: envelope?.type,
+                requestId: envelope?.requestId,
+                runtimeId: envelope?.runtimeId,
+              });
+              return;
+            }
+            onSystemEvent?.(envelope);
+          }}
         />
 
         <StudioOverlay

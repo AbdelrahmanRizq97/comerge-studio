@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Keyboard, Platform, View, useWindowDimensions } from 'react-native';
+import { InteractionManager, Keyboard, Platform, View, useWindowDimensions } from 'react-native';
 
 import type { App } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
@@ -116,6 +116,7 @@ export function StudioOverlay({
 
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const sheetOpenRef = React.useRef(sheetOpen);
+  const pendingNavigateHomeRef = React.useRef(false);
   const [activePage, setActivePage] = React.useState<SheetPage>('preview');
 
   const [drawing, setDrawing] = React.useState(false);
@@ -214,6 +215,50 @@ export function StudioOverlay({
     [closeSheet, onTestMr]
   );
 
+  const handleNavigateHome = React.useCallback(() => {
+    if (!onNavigateHome) return;
+
+    if (Platform.OS !== 'android') {
+      onNavigateHome();
+      return;
+    }
+
+    // On Android Fabric, navigate only after the sheet fully dismisses.
+    if (!sheetOpenRef.current) {
+      InteractionManager.runAfterInteractions(() => {
+        onNavigateHome();
+      });
+      return;
+    }
+
+    pendingNavigateHomeRef.current = true;
+    Keyboard.dismiss();
+    setActivePage('preview');
+    closeSheet();
+  }, [closeSheet, onNavigateHome]);
+
+  const handleSheetDismiss = React.useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    if (!pendingNavigateHomeRef.current) return;
+    pendingNavigateHomeRef.current = false;
+    InteractionManager.runAfterInteractions(() => {
+      onNavigateHome?.();
+    });
+  }, [onNavigateHome]);
+
+  React.useEffect(() => {
+    if (!sheetOpen) {
+      return;
+    }
+    pendingNavigateHomeRef.current = false;
+  }, [sheetOpen]);
+
+  React.useEffect(() => {
+    return () => {
+      pendingNavigateHomeRef.current = false;
+    };
+  }, []);
+
   React.useEffect(() => {
     sheetOpenRef.current = sheetOpen;
   }, [sheetOpen]);
@@ -236,7 +281,7 @@ export function StudioOverlay({
       {/* Testing glow around runtime */}
       <EdgeGlowFrame visible={isTesting} role="accent" thickness={40} intensity={1} />
 
-      <StudioBottomSheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
+      <StudioBottomSheet open={sheetOpen} onOpenChange={handleSheetOpenChange} onDismiss={handleSheetDismiss}>
         <StudioSheetPager
           activePage={activePage}
           width={width}
@@ -254,7 +299,7 @@ export function StudioOverlay({
               testingMrId={testingMrId}
               toMergeRequestSummary={toMergeRequestSummary}
               onClose={closeSheet}
-              onNavigateHome={onNavigateHome}
+              onNavigateHome={handleNavigateHome}
               onGoToChat={goToChat}
               onStartDraw={isOwner ? startDraw : undefined}
               onSubmitMergeRequest={onSubmitMergeRequest}
@@ -282,7 +327,7 @@ export function StudioOverlay({
               onClearAttachments={() => setChatAttachments([])}
               onBack={backToPreview}
               onClose={closeSheet}
-              onNavigateHome={onNavigateHome}
+              onNavigateHome={handleNavigateHome}
               onStartDraw={startDraw}
               onSend={optimistic.onSend}
               onRetryMessage={optimistic.onRetry}

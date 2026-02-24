@@ -17,6 +17,7 @@ export type StudioBottomSheetProps = {
    */
   open: boolean;
   onOpenChange?: (open: boolean) => void;
+  onDismiss?: () => void;
 
   /**
    * Snap points for the sheet.
@@ -60,6 +61,7 @@ export type StudioBottomSheetProps = {
 export function StudioBottomSheet({
   open,
   onOpenChange,
+  onDismiss,
   snapPoints = ['100%'],
   sheetRef,
   background,
@@ -125,7 +127,10 @@ export function StudioBottomSheet({
       handleIndicatorStyle={{ backgroundColor: theme.colors.handleIndicator }}
       {...bottomSheetProps}
       onChange={handleChange}
-      onDismiss={() => onOpenChange?.(false)}
+      onDismiss={() => {
+        onOpenChange?.(false);
+        onDismiss?.();
+      }}
     >
       <View style={{ flex: 1, overflow: 'hidden' }}>{children}</View>
     </BottomSheetModal>

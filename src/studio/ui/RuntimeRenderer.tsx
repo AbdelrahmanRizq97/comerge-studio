@@ -2,12 +2,14 @@ import * as React from 'react';
 import { View, type ViewStyle } from 'react-native';
 
 import { ComergeRuntimeRenderer } from '@comergehq/runtime';
+import type { ComergeRuntimeViewMessageEvent } from '@comergehq/runtime';
 
 import { Text } from '../../components/primitives/Text';
 
 export type RuntimeRendererProps = {
   appKey: string;
   bundlePath: string | null;
+  runtimeId?: string;
   /**
    * Loading text shown while runtime cannot render a bundle yet.
    */
@@ -26,15 +28,18 @@ export type RuntimeRendererProps = {
    * (e.g. base bundle replaced in-place).
    */
   renderToken?: number;
+  onMessage?: (event: ComergeRuntimeViewMessageEvent) => void;
   style?: ViewStyle;
 };
 
 export function RuntimeRenderer({
   appKey,
   bundlePath,
+  runtimeId,
   preparingText,
   forcePreparing,
   renderToken,
+  onMessage,
   style,
   allowInitialPreparing = true,
 }: RuntimeRendererProps) {
@@ -64,6 +69,8 @@ export function RuntimeRenderer({
         key={`${appKey}:${bundlePath}:${renderToken ?? 0}`}
         appKey={appKey}
         bundlePath={bundlePath}
+        runtimeId={runtimeId}
+        onMessage={onMessage}
         style={{ flex: 1 }}
       />
     </View>

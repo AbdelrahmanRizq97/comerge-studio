@@ -36,6 +36,8 @@
       "@supabase/supabase-js/*": ["../bld-playground-expo/node_modules/@supabase/supabase-js/*"],
       "lucide-react-native": ["../bld-playground-expo/node_modules/lucide-react-native"],
       "lucide-react-native/*": ["../bld-playground-expo/node_modules/lucide-react-native/*"],
+      "@comergehq/runtime": ["../comerge-runtime/src"],
+      "@comergehq/runtime/*": ["../comerge-runtime/src/*"],
       "@comergehq/studio-control": ["../comerge-studio-control/src"],
       "@comergehq/studio-control/*": ["../comerge-studio-control/src/*"],
       "react-native-zip-archive": ["../bld-playground-expo/node_modules/react-native-zip-archive"],

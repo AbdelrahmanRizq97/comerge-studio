@@ -22,7 +22,7 @@ import {
   type StudioControlOptions,
 } from '@comergehq/studio-control';
 
-import { MergeIcon } from '../../components/icons/MergeIcon';
+import { RemixUpIcon } from '../../components/icons/RemixUpIcon';
 
 export type StudioOverlayProps = {
   captureTargetRef: React.RefObject<View | null>;
@@ -366,7 +366,7 @@ export function StudioOverlay({
           loadingBorderTone={isBaseBundleDownloading ? 'warning' : 'default'}
         >
           <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-            <MergeIcon width={24} height={24} color={theme.colors.floatingContent} />
+            <RemixUpIcon width={24} height={24} />
           </View>
         </Bubble>
       )}

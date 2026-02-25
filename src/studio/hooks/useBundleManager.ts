@@ -555,6 +555,7 @@ export function useBundleManager({
   const [statusLabel, setStatusLabel] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isTesting, setIsTesting] = React.useState(false);
+  const didHydrateColdStartRef = React.useRef(false);
 
   const baseRef = React.useRef(base);
   baseRef.current = base;
@@ -584,20 +585,27 @@ export function useBundleManager({
   }, [canRequestLatest]);
   // Track the most recently successfully loaded base bundle so we can instantly exit test mode.
   const lastBaseBundlePathRef = React.useRef<string | null>(null);
+  const lastBaseAppIdRef = React.useRef<string | null>(null);
   const lastBaseFingerprintRef = React.useRef<string | null>(null);
+  const activeBundleAppIdRef = React.useRef<string | null>(null);
   // Only used to suppress an unnecessary remount on cold start when the network bundle matches the disk bundle.
   const initialHydratedBaseFromDiskRef = React.useRef(false);
   const hasCompletedFirstNetworkBaseLoadRef = React.useRef(false);
 
   const hydrateBaseFromDisk = React.useCallback(
-    async (appId: string, reason: 'initial' | 'fallback') => {
+    async (
+      appId: string,
+      reason: 'initial' | 'fallback',
+      options?: { allowEmbeddedFallback?: boolean }
+    ) => {
       try {
         const dir = bundlesCacheDir();
         await ensureDir(dir);
         const key = baseBundleKey(appId, platform);
         let existing = await getExistingBundleFileUri(key, platform);
         let embeddedMeta: BaseBundleMeta | null = null;
-        if (!existing) {
+        const allowEmbeddedFallback = options?.allowEmbeddedFallback ?? false;
+        if (!existing && allowEmbeddedFallback) {
           const embedded = embeddedBaseBundlesRef.current?.[platform];
           const hydrated = await hydrateBaseFromEmbeddedAsset(appId, platform, embedded);
           if (hydrated?.bundlePath) {
@@ -612,6 +620,8 @@ export function useBundleManager({
         }
         if (existing) {
           lastBaseBundlePathRef.current = existing;
+          lastBaseAppIdRef.current = appId;
+          activeBundleAppIdRef.current = appId;
           setBundlePath(existing);
           const meta =
             embeddedMeta ??
@@ -634,6 +644,9 @@ export function useBundleManager({
             initialHydratedBaseFromDiskRef.current = true;
             hasCompletedFirstNetworkBaseLoadRef.current = false;
           }
+        } else if (activeBundleAppIdRef.current !== appId) {
+          activeBundleAppIdRef.current = null;
+          setBundlePath(null);
         }
       } catch {
 
@@ -642,24 +655,42 @@ export function useBundleManager({
     [platform]
   );
 
-  // On cold reopen, try to load the last base bundle from disk as early as possible.
+  // On cold open, hydrate from disk and allow embedded fallback once.
+  // On subsequent app switches, hydrate only app-specific disk cache (no embedded fallback).
   React.useEffect(() => {
     if (!base.appId) return;
     initialHydratedBaseFromDiskRef.current = false;
     hasCompletedFirstNetworkBaseLoadRef.current = false;
-    void hydrateBaseFromDisk(base.appId, 'initial');
+    const isColdStart = !didHydrateColdStartRef.current;
+    didHydrateColdStartRef.current = true;
+    void hydrateBaseFromDisk(base.appId, isColdStart ? 'initial' : 'fallback', {
+      allowEmbeddedFallback: isColdStart,
+    });
   }, [base.appId, platform, hydrateBaseFromDisk]);
+
+  // Never keep rendering a bundle that belongs to a different app.
+  React.useEffect(() => {
+    if (!base.appId) return;
+    if (activeBundleAppIdRef.current && activeBundleAppIdRef.current !== base.appId) {
+      activeBundleAppIdRef.current = null;
+      setBundlePath(null);
+      setIsTesting(false);
+      setError(null);
+      setStatusLabel(null);
+    }
+  }, [base.appId]);
 
   const activateCachedBase = React.useCallback(
     async (appId: string) => {
       setIsTesting(false);
       setStatusLabel(null);
       setError(null);
-      const cachedBase = lastBaseBundlePathRef.current;
+      const cachedBase = lastBaseAppIdRef.current === appId ? lastBaseBundlePathRef.current : null;
       if (cachedBase) {
+        activeBundleAppIdRef.current = appId;
         setBundlePath(cachedBase);
       } else {
-        await hydrateBaseFromDisk(appId, 'fallback');
+        await hydrateBaseFromDisk(appId, 'fallback', { allowEmbeddedFallback: false });
       }
     },
     [hydrateBaseFromDisk]
@@ -700,6 +731,7 @@ export function useBundleManager({
       if (mode === 'test' && opId !== testOpIdRef.current) return;
       if (desiredModeRef.current !== mode) return;
       setBundleStatus(bundle.status);
+      activeBundleAppIdRef.current = src.appId;
       setBundlePath(path);
       const fingerprint = bundle.checksumSha256 ?? `id:${bundle.id}`;
 
@@ -718,6 +750,7 @@ export function useBundleManager({
 
       if (mode === 'base') {
         lastBaseBundlePathRef.current = path;
+        lastBaseAppIdRef.current = src.appId;
         lastBaseFingerprintRef.current = fingerprint;
         hasCompletedFirstNetworkBaseLoadRef.current = true;
         initialHydratedBaseFromDiskRef.current = false;

@@ -19,9 +19,15 @@ import { LiquidGlassResetProvider } from '../components/utils/liquidGlassReset';
 import { useEditQueue } from './hooks/useEditQueue';
 import { useEditQueueActions } from './hooks/useEditQueueActions';
 import { useAgentRunProgress } from './hooks/useAgentRunProgress';
+import { useRelatedApps } from './hooks/useRelatedApps';
 import { appsRepository } from '../data/apps/repository';
 import type { SyncUpstreamStatus } from '../data/apps/types';
 import { log } from '../core/logger';
+import {
+  trackRelatedAppSwitchFailed,
+  trackRelatedAppsOpened,
+  trackRelatedAppSwitched,
+} from './analytics/track';
 
 export type ComergeStudioProps = {
   appId: string;
@@ -29,6 +35,7 @@ export type ComergeStudioProps = {
   appKey?: string;
   analyticsEnabled?: boolean;
   onNavigateHome?: () => void;
+  onOpenAppRequested?: (params: { appId: string; appKey?: string; threadId?: string; source?: string }) => void;
   style?: ViewStyle;
   showBubble?: boolean;
   enableAgentProgress?: boolean;
@@ -43,6 +50,7 @@ export function ComergeStudio({
   appKey = 'MicroMain',
   analyticsEnabled,
   onNavigateHome,
+  onOpenAppRequested,
   style,
   showBubble = true,
   enableAgentProgress = true,
@@ -83,6 +91,7 @@ export function ComergeStudio({
               appKey={appKey}
               platform={platform}
               onNavigateHome={onNavigateHome}
+              onOpenAppRequested={onOpenAppRequested}
               captureTargetRef={captureTargetRef}
               style={style}
               showBubble={showBubble}
@@ -109,6 +118,7 @@ type InnerProps = {
   appKey: string;
   platform: BundlePlatform;
   onNavigateHome?: () => void;
+  onOpenAppRequested?: (params: { appId: string; appKey?: string; threadId?: string; source?: string }) => void;
   captureTargetRef: React.RefObject<View | null>;
   style?: ViewStyle;
   showBubble: boolean;
@@ -129,6 +139,7 @@ function ComergeStudioInner({
   appKey,
   platform,
   onNavigateHome,
+  onOpenAppRequested,
   captureTargetRef,
   style,
   showBubble,
@@ -332,6 +343,81 @@ function ComergeStudioInner({
     return editQueue.items;
   }, [editQueue.items, lastEditQueueInfo, suppressQueueUntilResponse]);
 
+  const { relatedApps, loading: relatedAppsLoading } = useRelatedApps(activeAppId);
+  const [switchingRelatedAppId, setSwitchingRelatedAppId] = React.useState<string | null>(null);
+
+  const handleOpenRelatedApps = React.useCallback(() => {
+    if (!relatedApps) return;
+    const ids = new Set<string>();
+    ids.add(relatedApps.current.id);
+    if (relatedApps.original?.id) ids.add(relatedApps.original.id);
+    for (const remix of relatedApps.remixes) ids.add(remix.id);
+    void trackRelatedAppsOpened({ appId: relatedApps.current.id, relatedCount: ids.size });
+  }, [relatedApps]);
+
+  const handleSwitchRelatedApp = React.useCallback(
+    async (targetAppId: string) => {
+      if (!targetAppId || targetAppId === activeAppId) return;
+      setSwitchingRelatedAppId(targetAppId);
+      try {
+        const targetApp = await appsRepository.getById(targetAppId);
+        if (targetApp.status !== 'ready') {
+          const reason = `target_not_ready:${targetApp.status}`;
+          log.warn('[related-apps] switch blocked: target app not ready', {
+            fromAppId: activeAppId,
+            toAppId: targetAppId,
+            status: targetApp.status,
+          });
+          await trackRelatedAppSwitchFailed({
+            fromAppId: activeAppId,
+            toAppId: targetAppId,
+            reason,
+          });
+          return;
+        }
+
+        if (onOpenAppRequested) {
+          onOpenAppRequested({
+            appId: targetAppId,
+            appKey,
+            threadId: targetApp.threadId ?? undefined,
+            source: 'related_apps_switcher',
+          });
+        } else {
+          setActiveAppId(targetAppId);
+          setRuntimeAppId(targetAppId);
+          setPendingRuntimeTargetAppId(null);
+        }
+
+        const targetType = relatedApps?.original?.id === targetAppId ? 'original' : 'remix';
+        await trackRelatedAppSwitched({
+          fromAppId: activeAppId,
+          toAppId: targetAppId,
+          targetType,
+        });
+      } catch (error) {
+        log.warn('[related-apps] switch failed', { fromAppId: activeAppId, toAppId: targetAppId, error });
+        await trackRelatedAppSwitchFailed({
+          fromAppId: activeAppId,
+          toAppId: targetAppId,
+          reason: 'switch_failed',
+          error,
+        });
+      } finally {
+        setSwitchingRelatedAppId(null);
+      }
+    },
+    [
+      activeAppId,
+      appKey,
+      onOpenAppRequested,
+      relatedApps?.original?.id,
+      setActiveAppId,
+      setPendingRuntimeTargetAppId,
+      setRuntimeAppId,
+    ]
+  );
+
   return (
       <View style={[{ flex: 1 }, style]}>
       <View ref={captureTargetRef} style={{ flex: 1 }} collapsable={false}>
@@ -422,6 +508,11 @@ function ComergeStudioInner({
           onNavigateHome={onNavigateHome}
           showBubble={showBubble}
           studioControlOptions={studioControlOptions}
+          relatedApps={relatedApps}
+          relatedAppsLoading={relatedAppsLoading}
+          switchingRelatedAppId={switchingRelatedAppId}
+          onOpenRelatedApps={handleOpenRelatedApps}
+          onSwitchRelatedApp={handleSwitchRelatedApp}
         />
       </View>
     </View>

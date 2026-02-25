@@ -45,6 +45,8 @@ async function trackMutationEvent<TName extends keyof Omit<{
   like_app: true;
   unlike_app: true;
   submit_comment: true;
+  related_app_switched: true;
+  related_app_switch_failed: true;
 }, never>>(
   name: TName,
   payload: StudioAnalyticsEventPayload<TName>
@@ -231,6 +233,46 @@ export async function trackSubmitComment(params: {
     comment_type: 'general',
     comment_length: params.commentLength,
     success: params.success,
+    ...errorProps,
+    ...baseProps(),
+  });
+}
+
+export async function trackRelatedAppsOpened(params: {
+  appId: string;
+  relatedCount: number;
+}) {
+  await trackStudioEvent('related_apps_opened', {
+    app_id: params.appId,
+    related_count: params.relatedCount,
+    ...baseProps(),
+  });
+}
+
+export async function trackRelatedAppSwitched(params: {
+  fromAppId: string;
+  toAppId: string;
+  targetType: 'original' | 'remix';
+}) {
+  await trackMutationEvent('related_app_switched', {
+    from_app_id: params.fromAppId,
+    to_app_id: params.toAppId,
+    target_type: params.targetType,
+    ...baseProps(),
+  });
+}
+
+export async function trackRelatedAppSwitchFailed(params: {
+  fromAppId: string;
+  toAppId: string;
+  reason: string;
+  error?: unknown;
+}) {
+  const errorProps = normalizeError(params.error);
+  await trackMutationEvent('related_app_switch_failed', {
+    from_app_id: params.fromAppId,
+    to_app_id: params.toAppId,
+    reason: params.reason,
     ...errorProps,
     ...baseProps(),
   });

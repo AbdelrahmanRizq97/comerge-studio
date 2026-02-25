@@ -66,7 +66,7 @@ export function RuntimeRenderer({
   return (
     <View style={[{ flex: 1 }, style]}>
       <ComergeRuntimeRenderer
-        key={`${appKey}:${bundlePath}:${renderToken ?? 0}`}
+        key={`${runtimeId ?? 'runtime:none'}:${appKey}:${bundlePath}:${renderToken ?? 0}`}
         appKey={appKey}
         bundlePath={bundlePath}
         runtimeId={runtimeId}

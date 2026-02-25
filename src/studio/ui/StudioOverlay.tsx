@@ -2,6 +2,7 @@ import * as React from 'react';
 import { InteractionManager, Keyboard, Platform, View, useWindowDimensions } from 'react-native';
 
 import type { App } from '../../data/apps/types';
+import type { RelatedApps } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
 import { StudioBottomSheet } from '../../components/studio-sheet/StudioBottomSheet';
 import { StudioSheetPager } from '../../components/studio-sheet/StudioSheetPager';
@@ -70,6 +71,11 @@ export type StudioOverlayProps = {
   onNavigateHome?: () => void;
   showBubble: boolean;
   studioControlOptions?: StudioControlOptions;
+  relatedApps?: RelatedApps | null;
+  relatedAppsLoading?: boolean;
+  switchingRelatedAppId?: string | null;
+  onOpenRelatedApps?: () => void;
+  onSwitchRelatedApp?: (targetAppId: string) => void;
 };
 
 type SheetPage = 'preview' | 'chat';
@@ -110,6 +116,11 @@ export function StudioOverlay({
   onNavigateHome,
   showBubble,
   studioControlOptions,
+  relatedApps,
+  relatedAppsLoading,
+  switchingRelatedAppId,
+  onOpenRelatedApps,
+  onSwitchRelatedApp,
 }: StudioOverlayProps) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -299,7 +310,7 @@ export function StudioOverlay({
               testingMrId={testingMrId}
               toMergeRequestSummary={toMergeRequestSummary}
               onClose={closeSheet}
-              onNavigateHome={handleNavigateHome}
+              onNavigateHome={onNavigateHome ? handleNavigateHome : undefined}
               onGoToChat={goToChat}
               onStartDraw={isOwner ? startDraw : undefined}
               onSubmitMergeRequest={onSubmitMergeRequest}
@@ -311,6 +322,11 @@ export function StudioOverlay({
               onTestMr={handleTestMr}
               onOpenComments={() => setCommentsAppId(app?.id ?? null)}
               commentCountOverride={commentsCount ?? undefined}
+              relatedApps={relatedApps}
+              relatedAppsLoading={relatedAppsLoading}
+              switchingRelatedAppId={switchingRelatedAppId}
+              onOpenRelatedApps={onOpenRelatedApps}
+              onSwitchRelatedApp={onSwitchRelatedApp}
             />
           }
           chat={
@@ -327,7 +343,7 @@ export function StudioOverlay({
               onClearAttachments={() => setChatAttachments([])}
               onBack={backToPreview}
               onClose={closeSheet}
-              onNavigateHome={handleNavigateHome}
+              onNavigateHome={onNavigateHome ? handleNavigateHome : undefined}
               onStartDraw={startDraw}
               onSend={optimistic.onSend}
               onRetryMessage={optimistic.onRetry}

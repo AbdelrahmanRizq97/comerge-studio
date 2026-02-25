@@ -74,6 +74,23 @@ export type SubmitCommentEventProperties = {
   success: boolean;
 } & ErrorMetadata;
 
+export type RelatedAppsOpenedEventProperties = {
+  app_id: string;
+  related_count: number;
+};
+
+export type RelatedAppSwitchedEventProperties = {
+  from_app_id: string;
+  to_app_id: string;
+  target_type: 'original' | 'remix';
+};
+
+export type RelatedAppSwitchFailedEventProperties = {
+  from_app_id: string;
+  to_app_id: string;
+  reason: string;
+} & ErrorMetadata;
+
 export type StudioAnalyticsEventMap = {
   remix_app: RemixAppEventProperties;
   edit_app: EditAppEventProperties;
@@ -86,6 +103,9 @@ export type StudioAnalyticsEventMap = {
   unlike_app: UnlikeAppEventProperties;
   open_comments: OpenCommentsEventProperties;
   submit_comment: SubmitCommentEventProperties;
+  related_apps_opened: RelatedAppsOpenedEventProperties;
+  related_app_switched: RelatedAppSwitchedEventProperties;
+  related_app_switch_failed: RelatedAppSwitchFailedEventProperties;
 };
 
 export type StudioAnalyticsEventName = keyof StudioAnalyticsEventMap;

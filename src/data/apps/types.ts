@@ -139,6 +139,14 @@ export type App = {
 
 export type AppStatus = App['status'];
 
+export type RelatedApp = Pick<App, 'id' | 'name' | 'status' | 'createdBy' | 'updatedAt' | 'forkedFromAppId'>;
+
+export type RelatedApps = {
+  current: RelatedApp;
+  original: RelatedApp | null;
+  remixes: RelatedApp[];
+};
+
 export type ForkAppRequest = {
   name?: string;
   platform?: string;

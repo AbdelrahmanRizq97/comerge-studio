@@ -11,6 +11,7 @@ import type {
   ListLikedAppsParams,
   ListPublicAppsParams,
   LikedAppsList,
+  RelatedApps,
   SyncUpstreamResponse,
 } from './types';
 import { appsRemoteDataSource } from './remote';
@@ -77,6 +78,7 @@ export interface AppsRepository {
   getSummary(params?: ListAppsSummaryParams): Promise<AppsSummary>;
   listLiked(params?: ListLikedAppsParams): Promise<LikedAppsList>;
   getById(appId: string): Promise<App>;
+  getRelated(appId: string): Promise<RelatedApps>;
   fork(appId: string, payload: ForkAppRequest): Promise<App>;
   getInsights(appId: string): Promise<AppInsights>;
   getAnalytics(appId: string, params: AppAnalyticsParams): Promise<AppAnalyticsPoint[]>;
@@ -113,6 +115,11 @@ class AppsRepositoryImpl extends BaseRepository implements AppsRepository {
 
   async getById(appId: string): Promise<App> {
     const res = await this.remote.getById(appId);
+    return this.unwrapOrThrow(res);
+  }
+
+  async getRelated(appId: string): Promise<RelatedApps> {
+    const res = await this.remote.getRelated(appId);
     return this.unwrapOrThrow(res);
   }
 

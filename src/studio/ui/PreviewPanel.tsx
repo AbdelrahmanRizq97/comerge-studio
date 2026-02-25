@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ActivityIndicator, Platform, Share, View } from 'react-native';
 
-import type { App, SyncUpstreamStatus } from '../../data/apps/types';
+import type { App, RelatedApps, SyncUpstreamStatus } from '../../data/apps/types';
 import type { MergeRequest } from '../../data/merge-requests/types';
 import { log } from '../../core/logger';
 import { PreviewPage } from '../../components/preview/PreviewPage';
@@ -39,6 +39,11 @@ export type PreviewPanelProps = {
   onTestMr?: (mr: MergeRequest) => void | Promise<void>;
   onOpenComments?: () => void;
   commentCountOverride?: number;
+  relatedApps?: RelatedApps | null;
+  relatedAppsLoading?: boolean;
+  switchingRelatedAppId?: string | null;
+  onOpenRelatedApps?: () => void;
+  onSwitchRelatedApp?: (targetAppId: string) => void;
 };
 
 export function PreviewPanel({
@@ -66,6 +71,11 @@ export function PreviewPanel({
   onTestMr,
   onOpenComments,
   commentCountOverride,
+  relatedApps,
+  relatedAppsLoading,
+  switchingRelatedAppId,
+  onOpenRelatedApps,
+  onSwitchRelatedApp,
 }: PreviewPanelProps) {
   const handleShare = React.useCallback(async () => {
     if (!app || !app.isPublic) return;
@@ -125,6 +135,11 @@ export function PreviewPanel({
       onNavigateHome={onNavigateHome}
       onGoToChat={onGoToChat}
       onShare={handleShare}
+      relatedApps={relatedApps}
+      relatedAppsLoading={relatedAppsLoading}
+      switchingRelatedAppId={switchingRelatedAppId}
+      onOpenRelatedApps={onOpenRelatedApps}
+      onSwitchRelatedApp={onSwitchRelatedApp}
     />
   );
 

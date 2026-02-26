@@ -24,6 +24,8 @@
       "react-native-safe-area-context/*": ["../bld-playground-expo/node_modules/react-native-safe-area-context/*"],
       "react-native-svg": ["../bld-playground-expo/node_modules/react-native-svg"],
       "react-native-svg/*": ["../bld-playground-expo/node_modules/react-native-svg/*"],
+      "lottie-react-native": ["../bld-playground-expo/node_modules/lottie-react-native"],
+      "lottie-react-native/*": ["../bld-playground-expo/node_modules/lottie-react-native/*"],
       "mixpanel-react-native": ["../bld-playground-expo/node_modules/mixpanel-react-native"],
       "mixpanel-react-native/*": ["../bld-playground-expo/node_modules/mixpanel-react-native/*"],
       "react-native-view-shot": ["../bld-playground-expo/node_modules/react-native-view-shot"],

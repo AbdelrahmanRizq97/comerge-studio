@@ -61,6 +61,7 @@
     "expo-file-system": "*",
     "expo-haptics": "*",
     "expo-linear-gradient": "*",
+    "lottie-react-native": "*",
     "lucide-react-native": "*",
     "react": "*",
     "react-native-gesture-handler": "*",

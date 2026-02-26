@@ -23,6 +23,7 @@ import {
 } from '@comergehq/studio-control';
 
 import { RemixUpIcon } from '../../components/icons/RemixUpIcon';
+import { RemixXLoopLottie } from '../../components/icons/RemixXLoopLottie';
 
 export type StudioOverlayProps = {
   captureTargetRef: React.RefObject<View | null>;
@@ -137,6 +138,7 @@ export function StudioOverlay({
 
   const threadId = app?.threadId ?? null;
   const isForking = chatForking || app?.status === 'forking';
+  const isBubbleLoading = app?.status === 'editing' || isBaseBundleDownloading;
   const queueItemsForChat = isForking ? [] : chatQueueItems;
   const disableOptimistic = Boolean(queueItemsForChat && queueItemsForChat.length > 0) || app?.status === 'editing';
   const optimistic = useOptimisticChatMessages({
@@ -362,11 +364,11 @@ export function StudioOverlay({
           ariaLabel={sheetOpen ? 'Hide studio' : 'Show studio'}
           badgeCount={incomingMergeRequests.length}
           onPress={toggleSheet}
-          isLoading={app?.status === 'editing' || isBaseBundleDownloading}
+          isLoading={isBubbleLoading}
           loadingBorderTone={isBaseBundleDownloading ? 'warning' : 'default'}
         >
           <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-            <RemixUpIcon width={24} height={24} />
+            {isBubbleLoading ? <RemixXLoopLottie size={24} /> : <RemixUpIcon width={24} height={24} />}
           </View>
         </Bubble>
       )}

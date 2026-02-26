@@ -8,6 +8,7 @@ import { PreviewPage } from '../../components/preview/PreviewPage';
 import { Text } from '../../components/primitives/Text';
 import { PreviewPanelHeader } from './preview-panel/PreviewPanelHeader';
 import { PreviewHeroSection } from './preview-panel/PreviewHeroSection';
+import { PreviewRelatedAppsSection } from './preview-panel/PreviewRelatedAppsSection';
 import { PreviewMetaSection } from './preview-panel/PreviewMetaSection';
 import { PreviewCustomizeSection } from './preview-panel/PreviewCustomizeSection';
 import { PreviewCollaborateSection } from './preview-panel/PreviewCollaborateSection';
@@ -135,11 +136,6 @@ export function PreviewPanel({
       onNavigateHome={onNavigateHome}
       onGoToChat={onGoToChat}
       onShare={handleShare}
-      relatedApps={relatedApps}
-      relatedAppsLoading={relatedAppsLoading}
-      switchingRelatedAppId={switchingRelatedAppId}
-      onOpenRelatedApps={onOpenRelatedApps}
-      onSwitchRelatedApp={onSwitchRelatedApp}
     />
   );
 
@@ -174,6 +170,14 @@ export function PreviewPanel({
       />
 
       <PreviewMetaSection app={app} isOwner={isOwner} creator={creator} downloadsCount={insights.downloads} />
+
+      <PreviewRelatedAppsSection
+        relatedApps={relatedApps}
+        relatedAppsLoading={relatedAppsLoading}
+        switchingRelatedAppId={switchingRelatedAppId}
+        onOpenRelatedApps={onOpenRelatedApps}
+        onSwitchRelatedApp={onSwitchRelatedApp}
+      />
 
       <PreviewCustomizeSection
         app={app}

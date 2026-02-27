@@ -47,7 +47,7 @@ export function ChatPanel({
   showTypingIndicator,
   loading,
   sendDisabled,
-  forking = false,
+  forking: _forking = false,
   sending,
   shouldForkOnEdit,
   attachments = [],
@@ -123,7 +123,7 @@ export function ChatPanel({
       />
     ) : null;
 
-  const showMessagesLoading = (Boolean(loading) && messages.length === 0) || forking;
+  const showMessagesLoading = Boolean(loading) && messages.length === 0;
   if (showMessagesLoading) {
     return (
       <View style={{ flex: 1 }}>
@@ -132,7 +132,7 @@ export function ChatPanel({
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 12 }}>
           <ActivityIndicator />
           <View style={{ height: 12 }} />
-          <Text variant="bodyMuted">{forking ? 'Creating your copy…' : 'Loading messages…'}</Text>
+          <Text variant="bodyMuted">Loading messages…</Text>
         </View>
       </View>
     );
@@ -142,7 +142,7 @@ export function ChatPanel({
   const queueTop = progress || queueItems.length > 0 ? (
     <View style={{ gap: theme.spacing.sm }}>
       {progress ? (bundleProgress ? <BundleProgressCard progress={bundleProgress} /> : <AgentProgressCard progress={progress} />) : null}
-      {queueItems.length > 0 ? <ChatQueue items={queueItems} onRemove={onRemoveQueueItem} /> : null}
+      {!progress && queueItems.length > 0 ? <ChatQueue items={queueItems} onRemove={onRemoveQueueItem} /> : null}
     </View>
   ) : null;
 
@@ -170,8 +170,8 @@ export function ChatPanel({
       composer={{
         // Keep the input editable even when sending is disallowed (e.g. agent still working),
         // otherwise iOS will drop focus/keyboard and BottomSheet can get "stuck" with a keyboard-sized gap.
-        disabled: Boolean(loading) || Boolean(forking),
-        sendDisabled: Boolean(sendDisabled) || Boolean(loading) || Boolean(forking),
+        disabled: Boolean(loading),
+        sendDisabled: Boolean(sendDisabled) || Boolean(loading),
         sending: Boolean(sending),
         onSend: handleSend,
         attachments,

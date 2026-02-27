@@ -13,6 +13,13 @@ export type EditAgentAppRequest = {
   idempotencyKey?: string;
 };
 
+export type ForkEditStartRequest = {
+  source_app_id: string;
+  prompt: string;
+  attachmentTokens?: string[];
+  idempotencyKey?: string;
+};
+
 export type AgentCreateAppResult = {
   threadId: string;
   projectId: string;
@@ -24,6 +31,15 @@ export type AgentEditAppResult = {
   appId: string;
   queueItemId?: string | null;
   queuePosition?: number | null;
+};
+
+export type AgentForkEditStartResult = {
+  runId: string;
+  targetAppId: string;
+  targetThreadId: string;
+  messageId: string | null;
+  queueItemId: string | null;
+  queuePosition: number | null;
 };
 
 import type { AttachmentMeta } from '../../data/attachment/types';

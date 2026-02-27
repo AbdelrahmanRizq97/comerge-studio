@@ -26,6 +26,10 @@ export type PresignAttachmentsRequest = {
   appId?: string;
 };
 
+export type StagePresignAttachmentsRequest = {
+  files: PresignFile[];
+};
+
 export type PresignedUpload = {
   uploadUrl: string;
   headers: Record<string, string>;
@@ -38,5 +42,21 @@ export type PresignAttachmentsResponse = {
   threadId: string;
   expiresIn: number;
   uploads: PresignedUpload[];
+};
+
+export type StagedPresignedUpload = {
+  uploadUrl: string;
+  headers: Record<string, string>;
+  token: string | null;
+  attachmentToken: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  checksum?: string;
+};
+
+export type StagePresignAttachmentsResponse = {
+  expiresIn: number;
+  uploads: StagedPresignedUpload[];
 };
 

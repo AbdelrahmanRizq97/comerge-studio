@@ -13,6 +13,7 @@ export type UploadBase64AttachmentsParams = {
 
 export type UseAttachmentUploadResult = {
   uploadBase64Images: (params: UploadBase64AttachmentsParams) => Promise<AttachmentMeta[]>;
+  stageBase64Images: (params: { dataUrls: string[] }) => Promise<string[]>;
   uploading: boolean;
   error: Error | null;
 };
@@ -99,7 +100,43 @@ export function useAttachmentUpload(): UseAttachmentUploadResult {
     }
   }, []);
 
-  return { uploadBase64Images, uploading, error };
+  const stageBase64Images = React.useCallback(async ({ dataUrls }: { dataUrls: string[] }) => {
+    if (!dataUrls || dataUrls.length === 0) return [];
+
+    setUploading(true);
+    setError(null);
+    try {
+      const blobs = await Promise.all(
+        dataUrls.map(async (dataUrl) => {
+          const normalized = dataUrl.startsWith('data:') ? dataUrl : `data:image/png;base64,${dataUrl}`;
+          const blob =
+            Platform.OS === 'android'
+              ? await dataUrlToBlobAndroid(normalized)
+              : await (await fetch(normalized)).blob();
+          const mimeType = getMimeTypeFromDataUrl(normalized);
+          return { blob, mimeType };
+        })
+      );
+
+      const files = blobs.map(({ blob, mimeType }, idx) => ({
+        name: `attachment-${Date.now()}-${idx}.png`,
+        size: blob.size,
+        mimeType,
+      }));
+
+      const presign = await attachmentRepository.stagePresign({ files });
+      await Promise.all(presign.uploads.map((u, index) => attachmentRepository.uploadStaged(u, blobs[index].blob)));
+      return presign.uploads.map((u) => u.attachmentToken);
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setError(err);
+      throw err;
+    } finally {
+      setUploading(false);
+    }
+  }, []);
+
+  return { uploadBase64Images, stageBase64Images, uploading, error };
 }
 
 

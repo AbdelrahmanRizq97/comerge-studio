@@ -67,7 +67,7 @@ function isOptimisticResolvedByServer(chatMessages: ChatMessage[], o: Optimistic
 
 export function useOptimisticChatMessages({
   threadId,
-  shouldForkOnEdit,
+  shouldForkOnEdit: _shouldForkOnEdit,
   disableOptimistic = false,
   chatMessages,
   onSendChat,
@@ -111,7 +111,7 @@ export function useOptimisticChatMessages({
 
   const onSend = React.useCallback(
     async (text: string, attachments?: string[]) => {
-      if (shouldForkOnEdit || disableOptimistic) {
+      if (disableOptimistic) {
         await onSendChat(text, attachments);
         return;
       }
@@ -138,12 +138,12 @@ export function useOptimisticChatMessages({
         setOptimisticChat((prev) => prev.map((m) => (m.id === id ? { ...m, failed: true } : m)));
       });
     },
-    [chatMessages, disableOptimistic, onSendChat, shouldForkOnEdit]
+    [chatMessages, disableOptimistic, onSendChat]
   );
 
   const onRetry = React.useCallback(
     async (messageId: string) => {
-      if (shouldForkOnEdit || disableOptimistic) return;
+      if (disableOptimistic) return;
       const target = optimisticChat.find((m) => m.id === messageId);
       if (!target || target.retrying) return;
 
@@ -167,7 +167,7 @@ export function useOptimisticChatMessages({
         );
       }
     },
-    [chatMessages, disableOptimistic, onSendChat, optimisticChat, shouldForkOnEdit]
+    [chatMessages, disableOptimistic, onSendChat, optimisticChat]
   );
 
   const isRetrying = React.useCallback(

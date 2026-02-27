@@ -257,6 +257,7 @@ function ComergeStudioInner({
       }
     },
     uploadAttachments: uploader.uploadBase64Images,
+    stageAttachments: uploader.stageBase64Images,
     onEditStart: () => {
       if (editQueue.items.length === 0) {
         setSuppressQueueUntilResponse(true);

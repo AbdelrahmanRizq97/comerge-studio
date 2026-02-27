@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import type { App } from '../../data/apps/types';
-import { appsRepository } from '../../data/apps/repository';
 import { agentRepository } from '../../data/agent/repository';
 import type { AttachmentMeta } from '../../data/attachment/types';
 import { trackEditApp, trackRemixApp } from '../analytics/track';
@@ -70,6 +69,7 @@ export type UseStudioActionsParams = {
    * Upload function used to convert attachments.
    */
   uploadAttachments?: (params: { threadId: string; appId: string; dataUrls: string[] }) => Promise<AttachmentMeta[]>;
+  stageAttachments?: (params: { dataUrls: string[] }) => Promise<string[]>;
 };
 
 export type UseStudioActionsResult = {
@@ -89,6 +89,7 @@ export function useStudioActions({
   onEditQueued,
   onEditFinished,
   uploadAttachments,
+  stageAttachments,
 }: UseStudioActionsParams): UseStudioActionsResult {
   const [forking, setForking] = React.useState(false);
   const [sending, setSending] = React.useState(false);
@@ -112,17 +113,48 @@ export function useStudioActions({
 
         if (shouldForkOnEdit) {
           setForking(true);
-          const forked = await appsRepository.fork(app.id, {});
-          targetApp = forked;
+          let attachmentTokens: string[] | undefined;
+          if (attachments && attachments.length > 0 && stageAttachments) {
+            attachmentTokens = await stageAttachments({ dataUrls: attachments });
+          }
+          const idempotencyKey = generateIdempotencyKey();
+          const startResult = await withRetry(
+            async () =>
+              await agentRepository.forkEditStart({
+                source_app_id: sourceAppId,
+                prompt,
+                attachmentTokens,
+                idempotencyKey,
+              }),
+            { attempts: 3, baseDelayMs: 500, maxDelayMs: 4000 }
+          );
+          targetApp = {
+            ...app,
+            id: startResult.targetAppId,
+            threadId: startResult.targetThreadId,
+          };
           await trackRemixApp({
-            appId: forked.id,
+            appId: startResult.targetAppId,
             sourceAppId,
-            threadId: forked.threadId ?? undefined,
+            threadId: startResult.targetThreadId ?? undefined,
             success: true,
           });
           forkSucceeded = true;
           // For fork+edit, keep rendering the original app until the edit completes on the fork.
-          onForkedApp?.(forked.id, { keepRenderingAppId: sourceAppId });
+          onForkedApp?.(startResult.targetAppId, { keepRenderingAppId: sourceAppId });
+          onEditStart?.();
+          onEditQueued?.({
+            queueItemId: startResult.queueItemId ?? null,
+            queuePosition: startResult.queuePosition ?? null,
+          });
+          await trackEditApp({
+            appId: startResult.targetAppId,
+            threadId: startResult.targetThreadId,
+            promptLength: prompt.trim().length,
+            success: true,
+          });
+          setForking(false);
+          return;
         }
         setForking(false);
 
@@ -186,7 +218,18 @@ export function useStudioActions({
         onEditFinished?.();
       }
     },
-    [app, onEditFinished, onEditQueued, onEditStart, onForkedApp, sending, shouldForkOnEdit, uploadAttachments, userId]
+    [
+      app,
+      onEditFinished,
+      onEditQueued,
+      onEditStart,
+      onForkedApp,
+      sending,
+      shouldForkOnEdit,
+      stageAttachments,
+      uploadAttachments,
+      userId,
+    ]
   );
 
   return { isOwner, shouldForkOnEdit, forking, sending, error, sendEdit };

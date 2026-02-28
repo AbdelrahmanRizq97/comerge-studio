@@ -284,10 +284,27 @@ function ComergeStudioInner({
   const [upstreamSyncStatus, setUpstreamSyncStatus] = React.useState<SyncUpstreamStatus | null>(null);
   const isMrTestBuildInProgress = bundle.loading && bundle.loadingMode === 'test';
   const isBaseBundleDownloading = bundle.loading && bundle.loadingMode === 'base' && !bundle.isTesting;
-  const runtimePreparingText =
-    bundle.bundleStatus === 'pending'
-      ? 'Bundling app… this may take a few minutes'
-      : 'Preparing app…';
+  const runtimePreparingText = React.useMemo(() => {
+    const status = app?.status;
+    if (status === 'ready' && bundle.bundleStatus === 'pending') {
+      return 'Bundling app… this may take a few minutes';
+    }
+
+    switch (status) {
+      case 'creating':
+        return 'Creating your app… this may take a moment';
+      case 'forking':
+        return 'Forking your app…';
+      case 'editing':
+        return 'Applying your latest changes…';
+      case 'merging':
+        return 'Merging app updates…';
+      case 'error':
+        return 'This app hit an error while preparing.';
+      default:
+        return 'Preparing app…';
+    }
+  }, [app?.status, bundle.bundleStatus]);
 
   // Show typing dots when the last message isn't an outcome (agent still working).
   const chatShowTypingIndicator = React.useMemo(() => {
@@ -362,9 +379,9 @@ function ComergeStudioInner({
       setSwitchingRelatedAppId(targetAppId);
       try {
         const targetApp = await appsRepository.getById(targetAppId);
-        if (targetApp.status !== 'ready') {
-          const reason = `target_not_ready:${targetApp.status}`;
-          log.warn('[related-apps] switch blocked: target app not ready', {
+        if (targetApp.status === 'archived') {
+          const reason = 'target_archived';
+          log.warn('[related-apps] switch blocked: target app archived', {
             fromAppId: activeAppId,
             toAppId: targetAppId,
             status: targetApp.status,

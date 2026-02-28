@@ -156,9 +156,9 @@ export function PreviewRelatedAppsSection({
   const renderRelatedCard = React.useCallback(
     (item: RelatedAppListItem, options?: { fullWidth?: boolean }) => {
       const isCurrent = item.app.id === currentAppId;
-      const isReady = item.app.status === 'ready';
+      const isArchived = item.app.status === 'archived';
       const isSwitching = switchingRelatedAppId === item.app.id;
-      const disabled = isCurrent || !isReady || Boolean(switchingRelatedAppId);
+      const disabled = isCurrent || isArchived || Boolean(switchingRelatedAppId);
 
       return (
         <Pressable
@@ -204,7 +204,7 @@ export function PreviewRelatedAppsSection({
 
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
               <View style={{ minHeight: 20, justifyContent: 'center' }}>
-                {!isReady ? <PreviewStatusBadge status={item.app.status} /> : null}
+                {item.app.status !== 'ready' ? <PreviewStatusBadge status={item.app.status} /> : null}
               </View>
               {isSwitching ? <ActivityIndicator size="small" color={theme.colors.primary} /> : null}
             </View>

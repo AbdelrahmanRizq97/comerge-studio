@@ -29,6 +29,8 @@ import {
   trackRelatedAppSwitched,
 } from './analytics/track';
 
+export type ActiveAppChangedSource = 'initial' | 'fork_edit' | 'related_apps' | 'host_route_sync';
+
 export type ComergeStudioProps = {
   appId: string;
   clientKey: string;
@@ -36,6 +38,7 @@ export type ComergeStudioProps = {
   analyticsEnabled?: boolean;
   onNavigateHome?: () => void;
   onOpenAppRequested?: (params: { appId: string; appKey?: string; threadId?: string; source?: string }) => void;
+  onActiveAppChanged?: (params: { appId: string; appKey?: string; source: ActiveAppChangedSource }) => void;
   style?: ViewStyle;
   showBubble?: boolean;
   enableAgentProgress?: boolean;
@@ -51,6 +54,7 @@ export function ComergeStudio({
   analyticsEnabled,
   onNavigateHome,
   onOpenAppRequested,
+  onActiveAppChanged,
   style,
   showBubble = true,
   enableAgentProgress = true,
@@ -61,13 +65,39 @@ export function ComergeStudio({
   const [activeAppId, setActiveAppId] = React.useState(appId);
   const [runtimeAppId, setRuntimeAppId] = React.useState(appId);
   const [pendingRuntimeTargetAppId, setPendingRuntimeTargetAppId] = React.useState<string | null>(null);
+  const didSyncFromHostRef = React.useRef(false);
+  const lastNotifiedRef = React.useRef<string | null>(null);
   const platform = React.useMemo<BundlePlatform>(() => (RNPlatform.OS === 'ios' ? 'ios' : 'android'), []);
 
+  const notifyActiveAppChanged = React.useCallback(
+    (nextAppId: string, source: ActiveAppChangedSource) => {
+      if (!onActiveAppChanged) return;
+      const trimmedAppId = nextAppId.trim();
+      if (!trimmedAppId) return;
+      const nextAppKey = appKey?.trim() || 'MicroMain';
+      const dedupeKey = `${trimmedAppId}:${nextAppKey}`;
+      if (lastNotifiedRef.current === dedupeKey) return;
+      lastNotifiedRef.current = dedupeKey;
+      onActiveAppChanged({ appId: trimmedAppId, appKey: nextAppKey, source });
+    },
+    [appKey, onActiveAppChanged]
+  );
+
+  const setActiveAppIdWithSource = React.useCallback(
+    (nextAppId: string, source: ActiveAppChangedSource) => {
+      setActiveAppId(nextAppId);
+      notifyActiveAppChanged(nextAppId, source);
+    },
+    [notifyActiveAppChanged]
+  );
+
   React.useEffect(() => {
-    setActiveAppId(appId);
+    const source: ActiveAppChangedSource = didSyncFromHostRef.current ? 'host_route_sync' : 'initial';
+    didSyncFromHostRef.current = true;
+    setActiveAppIdWithSource(appId, source);
     setRuntimeAppId(appId);
     setPendingRuntimeTargetAppId(null);
-  }, [appId]);
+  }, [appId, setActiveAppIdWithSource]);
 
   const captureTargetRef = React.useRef<View | null>(null);
 
@@ -83,7 +113,7 @@ export function ComergeStudio({
             <ComergeStudioInner
               userId={userId}
               activeAppId={activeAppId}
-              setActiveAppId={setActiveAppId}
+              setActiveAppId={setActiveAppIdWithSource}
               runtimeAppId={runtimeAppId}
               setRuntimeAppId={setRuntimeAppId}
               pendingRuntimeTargetAppId={pendingRuntimeTargetAppId}
@@ -110,7 +140,7 @@ export function ComergeStudio({
 type InnerProps = {
   userId: string;
   activeAppId: string;
-  setActiveAppId: (id: string) => void;
+  setActiveAppId: (id: string, source: ActiveAppChangedSource) => void;
   runtimeAppId: string;
   setRuntimeAppId: (id: string) => void;
   pendingRuntimeTargetAppId: string | null;
@@ -246,7 +276,7 @@ function ComergeStudioInner({
     userId,
     app,
     onForkedApp: (id, opts) => {
-      setActiveAppId(id);
+      setActiveAppId(id, 'fork_edit');
       const keepRenderingAppId = opts?.keepRenderingAppId;
       if (keepRenderingAppId) {
         setRuntimeAppId(keepRenderingAppId);
@@ -402,7 +432,7 @@ function ComergeStudioInner({
             source: 'related_apps_switcher',
           });
         } else {
-          setActiveAppId(targetAppId);
+          setActiveAppId(targetAppId, 'related_apps');
           setRuntimeAppId(targetAppId);
           setPendingRuntimeTargetAppId(null);
         }

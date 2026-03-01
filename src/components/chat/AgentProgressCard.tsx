@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import type { AgentRunProgressView } from '../../studio/hooks/useAgentRunProgress';
 import { useTheme } from '../../theme';
+import { RemixXLoopLottie } from '../icons/RemixXLoopLottie';
 import { Text } from '../primitives/Text';
 import { withAlpha } from '../utils/color';
 
@@ -33,6 +34,7 @@ export function AgentProgressCard({ progress }: AgentProgressCardProps) {
   const theme = useTheme();
   const statusLabel = titleForStatus(progress.status);
   const phaseLabel = titleForPhase(progress.phase);
+  const showAnimatedStatusIcon = progress.status === 'running';
   const subtitle = progress.latestMessage || `Agent is ${phaseLabel.toLowerCase()}...`;
   const todo = progress.todoSummary;
 
@@ -49,7 +51,10 @@ export function AgentProgressCard({ progress }: AgentProgressCardProps) {
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
         <Text variant="caption">{statusLabel}</Text>
-        <Text variant="captionMuted">{phaseLabel}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text variant="captionMuted">{phaseLabel}</Text>
+          {showAnimatedStatusIcon ? <RemixXLoopLottie size={20} style={{ marginLeft: 8 }} /> : null}
+        </View>
       </View>
 
       <Text variant="bodyMuted">{subtitle}</Text>

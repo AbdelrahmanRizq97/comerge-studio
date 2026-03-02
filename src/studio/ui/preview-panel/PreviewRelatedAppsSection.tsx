@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 
 import type { RelatedApp, RelatedApps } from '../../../data/apps/types';
 import { Modal } from '../../../components/primitives/Modal';
 import { Text } from '../../../components/primitives/Text';
-import { PreviewStatusBadge } from '../../../components/preview/PreviewStatusBadge';
 import { withAlpha } from '../../../components/utils/color';
 import { useTheme } from '../../../theme';
 import { SectionTitle } from './SectionTitle';
@@ -53,7 +52,10 @@ export function PreviewRelatedAppsSection({
   onSwitchRelatedApp,
 }: PreviewRelatedAppsSectionProps) {
   const theme = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
   const [relatedAppsOpen, setRelatedAppsOpen] = React.useState(false);
+  const modalMaxHeight = Math.max(240, windowHeight * 0.5);
+  const modalScrollMaxHeight = Math.max(140, modalMaxHeight - 96);
 
   const relatedAppItems = React.useMemo((): RelatedAppListItem[] => {
     if (!relatedApps) return [];
@@ -203,9 +205,6 @@ export function PreviewRelatedAppsSection({
             </View>
 
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
-              <View style={{ minHeight: 20, justifyContent: 'center' }}>
-                {item.app.status !== 'ready' ? <PreviewStatusBadge status={item.app.status} /> : null}
-              </View>
               {isSwitching ? <ActivityIndicator size="small" color={theme.colors.primary} /> : null}
             </View>
           </View>
@@ -258,25 +257,35 @@ export function PreviewRelatedAppsSection({
         </ScrollView>
       )}
 
-      <Modal visible={relatedAppsOpen} onRequestClose={closeRelatedApps}>
-        <View style={{ gap: theme.spacing.sm }}>
+      <Modal
+        visible={relatedAppsOpen}
+        onRequestClose={closeRelatedApps}
+        contentStyle={{ maxHeight: modalMaxHeight, overflow: 'hidden' }}
+      >
+        <View style={{ gap: theme.spacing.sm, minHeight: 0 }}>
           <Text style={{ color: theme.colors.text, fontSize: 18, fontWeight: theme.typography.fontWeight.semibold }}>
             Related apps
           </Text>
 
-          {sectionedRelatedApps.original.length > 0 ? (
-            <View>
-              <Text style={{ color: theme.colors.textMuted, marginBottom: theme.spacing.xs }}>Original</Text>
-              {sectionedRelatedApps.original.map((item) => renderRelatedCard(item, { fullWidth: true }))}
-            </View>
-          ) : null}
+          <ScrollView
+            style={{ maxHeight: modalScrollMaxHeight }}
+            contentContainerStyle={{ paddingBottom: theme.spacing.xs, gap: theme.spacing.sm }}
+            showsVerticalScrollIndicator
+          >
+            {sectionedRelatedApps.original.length > 0 ? (
+              <View>
+                <Text style={{ color: theme.colors.textMuted, marginBottom: theme.spacing.xs }}>Original</Text>
+                {sectionedRelatedApps.original.map((item) => renderRelatedCard(item, { fullWidth: true }))}
+              </View>
+            ) : null}
 
-          {sectionedRelatedApps.remixes.length > 0 ? (
-            <View>
-              <Text style={{ color: theme.colors.textMuted, marginBottom: theme.spacing.xs }}>Remixes</Text>
-              {sectionedRelatedApps.remixes.map((item) => renderRelatedCard(item, { fullWidth: true }))}
-            </View>
-          ) : null}
+            {sectionedRelatedApps.remixes.length > 0 ? (
+              <View>
+                <Text style={{ color: theme.colors.textMuted, marginBottom: theme.spacing.xs }}>Remixes</Text>
+                {sectionedRelatedApps.remixes.map((item) => renderRelatedCard(item, { fullWidth: true }))}
+              </View>
+            ) : null}
+          </ScrollView>
         </View>
       </Modal>
     </>

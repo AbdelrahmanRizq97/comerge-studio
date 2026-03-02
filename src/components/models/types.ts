@@ -31,6 +31,16 @@ export type ChatMessageMeta = {
   threadId?: string;
 };
 
+export type ChatAttachment = {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  uri?: string;
+  width?: number;
+  height?: number;
+};
+
 export type ChatMessage = {
   id: string;
   author: ChatAuthor;
@@ -38,6 +48,7 @@ export type ChatMessage = {
   createdAt?: string | number | Date | null;
   kind?: string | null;
   meta?: ChatMessageMeta | null;
+  attachments?: ChatAttachment[];
 };
 
 

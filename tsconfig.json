@@ -44,6 +44,8 @@
       "@comergehq/studio-control/*": ["../comerge-studio-control/src/*"],
       "react-native-zip-archive": ["../bld-playground-expo/node_modules/react-native-zip-archive"],
       "react-native-zip-archive/*": ["../bld-playground-expo/node_modules/react-native-zip-archive/*"],
+      "expo-image": ["../bld-playground-expo/node_modules/expo-image"],
+      "expo-image/*": ["../bld-playground-expo/node_modules/expo-image/*"],
     },
     "typeRoots": ["../bld-playground-expo/node_modules/@types"]
   },

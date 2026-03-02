@@ -14,6 +14,7 @@ export type ChatPageProps = {
   renderMessageContent?: ChatMessageListProps['renderMessageContent'];
   onRetryMessage?: ChatMessageListProps['onRetryMessage'];
   isRetryingMessage?: ChatMessageListProps['isRetryingMessage'];
+  onAttachmentLoadError?: ChatMessageListProps['onAttachmentLoadError'];
   topBanner?: React.ReactNode;
   composerTop?: React.ReactNode;
   composer: Omit<ChatComposerProps, 'attachments'> & {
@@ -36,6 +37,7 @@ export function ChatPage({
   renderMessageContent,
   onRetryMessage,
   isRetryingMessage,
+  onAttachmentLoadError,
   topBanner,
   composerTop,
   composer,
@@ -86,6 +88,7 @@ export function ChatPage({
             renderMessageContent={renderMessageContent}
             onRetryMessage={onRetryMessage}
             isRetryingMessage={isRetryingMessage}
+            onAttachmentLoadError={onAttachmentLoadError}
             onNearBottomChange={onNearBottomChange}
             bottomInset={bottomInset}
           />

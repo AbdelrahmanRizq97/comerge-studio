@@ -18,6 +18,8 @@ export type PresignFile = {
   size: number;
   mimeType: string;
   checksum?: string;
+  width?: number;
+  height?: number;
 };
 
 export type PresignAttachmentsRequest = {

@@ -17,6 +17,7 @@ export type ChatMessageListProps = {
   renderMessageContent?: ChatMessageBubbleProps['renderContent'];
   onRetryMessage?: (messageId: string) => void;
   isRetryingMessage?: (messageId: string) => boolean;
+  onAttachmentLoadError?: (messageId: string, attachmentId: string) => void;
   contentStyle?: ViewStyle;
   bottomInset?: number;
   /**
@@ -37,6 +38,7 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
       renderMessageContent,
       onRetryMessage,
       isRetryingMessage,
+      onAttachmentLoadError,
       contentStyle,
       bottomInset = 0,
       onNearBottomChange,
@@ -144,9 +146,10 @@ export const ChatMessageList = React.forwardRef<ChatMessageListRef, ChatMessageL
           isLast={Boolean(lastMessageId && item.id === lastMessageId)}
           retrying={isRetryingMessage?.(item.id) ?? false}
           onRetryMessage={onRetryMessage}
+          onAttachmentLoadError={onAttachmentLoadError}
         />
       ),
-      [isRetryingMessage, lastMessageId, onRetryMessage, renderMessageContent]
+      [isRetryingMessage, lastMessageId, onAttachmentLoadError, onRetryMessage, renderMessageContent]
     );
 
     return (

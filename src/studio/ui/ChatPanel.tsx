@@ -36,6 +36,7 @@ export type ChatPanelProps = {
   onSend: (text: string, attachments?: string[]) => void | Promise<void>;
   onRetryMessage?: (messageId: string) => void | Promise<void>;
   isRetryingMessage?: (messageId: string) => boolean;
+  onAttachmentLoadError?: (messageId: string, attachmentId: string) => void;
   queueItems?: EditQueueItem[];
   onRemoveQueueItem?: (id: string) => void;
   progress?: AgentRunProgressView | null;
@@ -60,6 +61,7 @@ export function ChatPanel({
   onSend,
   onRetryMessage,
   isRetryingMessage,
+  onAttachmentLoadError,
   queueItems = [],
   onRemoveQueueItem,
   progress = null,
@@ -153,6 +155,7 @@ export function ChatPanel({
       showTypingIndicator={showTypingIndicator}
       onRetryMessage={onRetryMessage}
       isRetryingMessage={isRetryingMessage}
+      onAttachmentLoadError={onAttachmentLoadError}
       topBanner={topBanner}
       composerTop={queueTop}
       composerHorizontalPadding={0}

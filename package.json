@@ -59,6 +59,7 @@
     "expo": "*",
     "expo-asset": "*",
     "expo-file-system": "*",
+    "expo-image": "*",
     "expo-haptics": "*",
     "expo-linear-gradient": "*",
     "lottie-react-native": "*",

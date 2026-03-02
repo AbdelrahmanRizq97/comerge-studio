@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { Image } from 'react-native';
 
 import type { ChatMessage } from '../../components/models/types';
 
@@ -20,11 +21,17 @@ export type UseOptimisticChatMessagesResult = {
 type OptimisticChatMessage = {
   id: string;
   content: string;
-  attachments?: string[];
+  attachments?: OptimisticAttachment[];
   createdAtIso: string;
   baseServerLastId: string | null;
   failed: boolean;
   retrying: boolean;
+};
+
+type OptimisticAttachment = {
+  uri: string;
+  width?: number;
+  height?: number;
 };
 
 function makeOptimisticId() {
@@ -37,6 +44,28 @@ function toEpochMs(createdAt: ChatMessage['createdAt']): number {
   if (createdAt instanceof Date) return createdAt.getTime();
   const t = Date.parse(String(createdAt));
   return Number.isFinite(t) ? t : 0;
+}
+
+async function resolveAttachmentDimensions(uris: string[]): Promise<OptimisticAttachment[]> {
+  return Promise.all(
+    uris.map(
+      async (uri): Promise<OptimisticAttachment> => {
+        try {
+          const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+            Image.getSize(
+              uri,
+              (w, h) => resolve({ width: w, height: h }),
+              (err) => reject(err)
+            );
+          });
+          if (width > 0 && height > 0) {
+            return { uri, width: Math.round(width), height: Math.round(height) };
+          }
+        } catch {}
+        return { uri };
+      }
+    )
+  );
 }
 
 function isOptimisticResolvedByServer(chatMessages: ChatMessage[], o: OptimisticChatMessage) {
@@ -90,6 +119,15 @@ export function useOptimisticChatMessages({
       content: o.content,
       createdAt: o.createdAtIso,
       kind: 'optimistic',
+      attachments: (o.attachments ?? []).map((attachment, index) => ({
+        id: `${o.id}:attachment:${index}`,
+        name: `attachment-${index + 1}.png`,
+        mimeType: 'image/png',
+        size: 1,
+        uri: attachment.uri,
+        width: attachment.width,
+        height: attachment.height,
+      })),
       meta: o.failed
         ? { kind: 'optimistic', event: 'send.failed', status: 'error' }
         : { kind: 'optimistic', event: 'send.pending', status: 'info' },
@@ -119,7 +157,10 @@ export function useOptimisticChatMessages({
       const createdAtIso = new Date().toISOString();
       const baseServerLastId = chatMessages.length > 0 ? chatMessages[chatMessages.length - 1]!.id : null;
       const id = makeOptimisticId();
-      const normalizedAttachments = attachments && attachments.length > 0 ? [...attachments] : undefined;
+      const normalizedAttachments =
+        attachments && attachments.length > 0
+          ? await resolveAttachmentDimensions(attachments)
+          : undefined;
 
       setOptimisticChat((prev) => [
         ...prev,
@@ -157,7 +198,10 @@ export function useOptimisticChatMessages({
       );
 
       try {
-        await onSendChat(target.content, target.attachments);
+        await onSendChat(
+          target.content,
+          target.attachments?.map((att) => att.uri)
+        );
         setOptimisticChat((prev) =>
           prev.map((m) => (m.id === messageId ? { ...m, retrying: false } : m))
         );

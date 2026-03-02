@@ -64,6 +64,7 @@ export type StudioOverlayProps = {
   chatSending?: boolean;
   chatShowTypingIndicator?: boolean;
   onSendChat: (text: string, attachments?: string[]) => void | Promise<void>;
+  onChatAttachmentLoadError?: (messageId: string, attachmentId: string) => void;
   chatQueueItems?: import('../../data/apps/edit-queue/types').EditQueueItem[];
   onRemoveQueueItem?: (id: string) => void;
   chatProgress?: import('../hooks/useAgentRunProgress').AgentRunProgressView | null;
@@ -111,6 +112,7 @@ export function StudioOverlay({
   chatSending,
   chatShowTypingIndicator,
   onSendChat,
+  onChatAttachmentLoadError,
   chatQueueItems,
   onRemoveQueueItem,
   chatProgress,
@@ -350,6 +352,7 @@ export function StudioOverlay({
               onSend={optimistic.onSend}
               onRetryMessage={optimistic.onRetry}
               isRetryingMessage={optimistic.isRetrying}
+              onAttachmentLoadError={onChatAttachmentLoadError}
               queueItems={queueItemsForChat}
               onRemoveQueueItem={onRemoveQueueItem}
               progress={chatProgress}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { attachmentRepository } from '../../data/attachment/repository';
@@ -59,6 +59,23 @@ function getMimeTypeFromDataUrl(dataUrl: string): string {
   return mimeMatch?.[1] ?? 'image/png';
 }
 
+async function getImageDimensionsFromDataUrl(dataUrl: string): Promise<{ width?: number; height?: number }> {
+  try {
+    const normalized = dataUrl.startsWith('data:') ? dataUrl : `data:image/png;base64,${dataUrl}`;
+    const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      Image.getSize(
+        normalized,
+        (width, height) => resolve({ width, height }),
+        (err) => reject(err)
+      );
+    });
+    if (dims.width > 0 && dims.height > 0) {
+      return { width: Math.round(dims.width), height: Math.round(dims.height) };
+    }
+  } catch {}
+  return {};
+}
+
 export function useAttachmentUpload(): UseAttachmentUploadResult {
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
@@ -78,19 +95,28 @@ export function useAttachmentUpload(): UseAttachmentUploadResult {
               ? await dataUrlToBlobAndroid(normalized)
               : await (await fetch(normalized)).blob();
           const mimeType = getMimeTypeFromDataUrl(normalized);
-          return { blob, idx, mimeType };
+          const dimensions = mimeType.startsWith('image/')
+            ? await getImageDimensionsFromDataUrl(normalized)
+            : {};
+          return { blob, idx, mimeType, ...dimensions };
         })
       );
 
-      const files = blobs.map(({ blob, mimeType }, idx) => ({
+      const files = blobs.map(({ blob, mimeType, width, height }, idx) => ({
         name: `attachment-${Date.now()}-${idx}.png`,
         size: blob.size,
         mimeType,
+        width,
+        height,
       }));
 
       const presign = await attachmentRepository.presign({ threadId, appId, files });
       await Promise.all(presign.uploads.map((u, index) => attachmentRepository.upload(u, blobs[index].blob)));
-      return presign.uploads.map((u) => u.attachment);
+      return presign.uploads.map((u, index) => ({
+        ...u.attachment,
+        width: blobs[index].width,
+        height: blobs[index].height,
+      }));
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
       setError(err);
@@ -114,14 +140,19 @@ export function useAttachmentUpload(): UseAttachmentUploadResult {
               ? await dataUrlToBlobAndroid(normalized)
               : await (await fetch(normalized)).blob();
           const mimeType = getMimeTypeFromDataUrl(normalized);
-          return { blob, mimeType };
+          const dimensions = mimeType.startsWith('image/')
+            ? await getImageDimensionsFromDataUrl(normalized)
+            : {};
+          return { blob, mimeType, ...dimensions };
         })
       );
 
-      const files = blobs.map(({ blob, mimeType }, idx) => ({
+      const files = blobs.map(({ blob, mimeType, width, height }, idx) => ({
         name: `attachment-${Date.now()}-${idx}.png`,
         size: blob.size,
         mimeType,
+        width,
+        height,
       }));
 
       const presign = await attachmentRepository.stagePresign({ files });

@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { Message } from '../../data/messages/types';
 import { messagesRepository } from '../../data/messages/repository';
-import type { ChatMessage } from '../../components/models/types';
+import type { ChatAttachment, ChatMessage } from '../../components/models/types';
 import { useForegroundSignal } from './useForegroundSignal';
 
 export type UseThreadMessagesResult = {
@@ -12,6 +12,7 @@ export type UseThreadMessagesResult = {
   refreshing: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
+  recoverAttachmentUrls: () => void;
 };
 
 function extractMeta(payload: unknown): ChatMessage['meta'] {
@@ -64,6 +65,36 @@ function compareMessages(a: Message, b: Message): number {
   return String(a.createdAt).localeCompare(String(b.createdAt));
 }
 
+function parseAttachments(payload: Message['payload']): ChatAttachment[] {
+  const raw = (payload as any)?.attachments;
+  if (!Array.isArray(raw)) return [];
+  const out: ChatAttachment[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const id = typeof (item as any).id === 'string' ? String((item as any).id) : '';
+    const name = typeof (item as any).name === 'string' ? String((item as any).name) : '';
+    const mimeType = typeof (item as any).mimeType === 'string' ? String((item as any).mimeType) : '';
+    const size = typeof (item as any).size === 'number' ? Number((item as any).size) : 0;
+    if (!id || !name || !mimeType || !Number.isFinite(size) || size <= 0) continue;
+    out.push({
+      id,
+      name,
+      mimeType,
+      size,
+      uri: typeof (item as any).downloadUrl === 'string' ? String((item as any).downloadUrl) : undefined,
+      width: typeof (item as any).width === 'number' ? Number((item as any).width) : undefined,
+      height: typeof (item as any).height === 'number' ? Number((item as any).height) : undefined,
+    });
+  }
+  return out;
+}
+
+function hasAttachmentWithoutUrl(payload: Message['payload']): boolean {
+  const attachments = parseAttachments(payload);
+  if (attachments.length === 0) return false;
+  return attachments.some((att) => !att.uri);
+}
+
 function mapMessageToChatMessage(m: Message): ChatMessage {
   const kind = typeof (m.payload as any)?.type === 'string' ? String((m.payload as any).type) : null;
   return {
@@ -73,6 +104,7 @@ function mapMessageToChatMessage(m: Message): ChatMessage {
     createdAt: m.createdAt,
     kind,
     meta: extractMeta(m.payload),
+    attachments: parseAttachments(m.payload),
   };
 }
 
@@ -84,10 +116,21 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   const activeRequestIdRef = React.useRef(0);
   const foregroundSignal = useForegroundSignal(Boolean(threadId));
   const hasLoadedOnceRef = React.useRef(false);
+  const attachmentRecoveryTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAttachmentRecoveryAtRef = React.useRef(0);
 
   React.useEffect(() => {
     hasLoadedOnceRef.current = false;
   }, [threadId]);
+
+  React.useEffect(() => {
+    return () => {
+      if (attachmentRecoveryTimerRef.current) {
+        clearTimeout(attachmentRecoveryTimerRef.current);
+        attachmentRecoveryTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const upsertSorted = React.useCallback((prev: Message[], m: Message) => {
     const next = prev.filter((x) => x.id !== m.id);
@@ -131,6 +174,20 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     }
   }, [threadId]);
 
+  const recoverAttachmentUrls = React.useCallback(() => {
+    if (!threadId) return;
+    if (attachmentRecoveryTimerRef.current) return;
+
+    const now = Date.now();
+    if (now - lastAttachmentRecoveryAtRef.current < 2000) return;
+
+    attachmentRecoveryTimerRef.current = setTimeout(() => {
+      attachmentRecoveryTimerRef.current = null;
+      lastAttachmentRecoveryAtRef.current = Date.now();
+      void refetch({ background: true });
+    }, 250);
+  }, [refetch, threadId]);
+
   React.useEffect(() => {
     void refetch();
   }, [refetch]);
@@ -138,12 +195,22 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
   React.useEffect(() => {
     if (!threadId) return;
     const unsubscribe = messagesRepository.subscribeThread(threadId, {
-      onInsert: (m) => setRaw((prev) => upsertSorted(prev, m)),
-      onUpdate: (m) => setRaw((prev) => upsertSorted(prev, m)),
+      onInsert: (m) => {
+        setRaw((prev) => upsertSorted(prev, m));
+        if (hasAttachmentWithoutUrl(m.payload)) {
+          recoverAttachmentUrls();
+        }
+      },
+      onUpdate: (m) => {
+        setRaw((prev) => upsertSorted(prev, m));
+        if (hasAttachmentWithoutUrl(m.payload)) {
+          recoverAttachmentUrls();
+        }
+      },
       onDelete: (m) => setRaw((prev) => prev.filter((x) => x.id !== m.id)),
     });
     return unsubscribe;
-  }, [threadId, upsertSorted, foregroundSignal]);
+  }, [threadId, upsertSorted, foregroundSignal, recoverAttachmentUrls]);
 
   React.useEffect(() => {
     if (!threadId) return;
@@ -151,13 +218,20 @@ export function useThreadMessages(threadId: string): UseThreadMessagesResult {
     void refetch({ background: true });
   }, [foregroundSignal, refetch, threadId]);
 
+  React.useEffect(() => {
+    if (!threadId) return;
+    if (raw.length === 0) return;
+    if (!raw.some((m) => hasAttachmentWithoutUrl(m.payload))) return;
+    recoverAttachmentUrls();
+  }, [raw, recoverAttachmentUrls, threadId]);
+
   const messages = React.useMemo(() => {
     const visible = raw.filter((m) => !isQueuedHiddenMessage(m));
     const resolved = visible.length > 0 ? visible : raw;
     return resolved.map(mapMessageToChatMessage);
   }, [raw]);
 
-  return { raw, messages, loading, refreshing, error, refetch };
+  return { raw, messages, loading, refreshing, error, refetch, recoverAttachmentUrls };
 }
 
 

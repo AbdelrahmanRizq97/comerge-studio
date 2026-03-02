@@ -107,7 +107,13 @@ export function DrawModeOverlay({
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.root, style]} pointerEvents="box-none">
-      <EdgeGlowFrame visible={!hideUi} role="danger" thickness={50} intensity={1} />
+      <EdgeGlowFrame
+        visible={!hideUi}
+        role="danger"
+        thickness={50}
+        intensity={1}
+        animationDurationMs={hideUi ? 0 : 300}
+      />
 
       <DrawSurface
         color={selectedColor}

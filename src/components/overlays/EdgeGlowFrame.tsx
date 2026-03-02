@@ -19,6 +19,10 @@ export type EdgeGlowFrameProps = {
    * Optional intensity multiplier for alpha (0..1).
    */
   intensity?: number;
+  /**
+   * Opacity animation duration in ms.
+   */
+  animationDurationMs?: number;
   style?: ViewStyle;
 };
 
@@ -41,6 +45,7 @@ export function EdgeGlowFrame({
   role = 'accent',
   thickness = 40,
   intensity = 1,
+  animationDurationMs = 300,
   style,
 }: EdgeGlowFrameProps) {
   const theme = useTheme();
@@ -51,10 +56,10 @@ export function EdgeGlowFrame({
   React.useEffect(() => {
     Animated.timing(anim, {
       toValue: visible ? 1 : 0,
-      duration: 300,
+      duration: animationDurationMs,
       useNativeDriver: true,
     }).start();
-  }, [anim, visible]);
+  }, [anim, visible, animationDurationMs]);
 
   const c = baseColor(role, theme);
   const strong = withAlpha(c, 0.6 * alpha);

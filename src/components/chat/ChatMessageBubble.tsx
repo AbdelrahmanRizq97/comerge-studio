@@ -8,6 +8,7 @@ import { Button } from '../primitives/Button';
 import { MarkdownText } from '../primitives/MarkdownText';
 import { Surface } from '../primitives/Surface';
 import { Text } from '../primitives/Text';
+import { ChatMessageAttachments } from './ChatMessageAttachments';
 
 export type ChatMessageBubbleProps = {
   message: ChatMessage;
@@ -18,6 +19,7 @@ export type ChatMessageBubbleProps = {
   isLast?: boolean;
   retrying?: boolean;
   onRetryMessage?: (messageId: string) => void;
+  onAttachmentLoadError?: (messageId: string, attachmentId: string) => void;
   style?: ViewStyle;
 };
 
@@ -36,12 +38,34 @@ function areMessageMetaEqual(a: ChatMessage['meta'], b: ChatMessage['meta']): bo
   );
 }
 
+function areMessageAttachmentsEqual(a: ChatMessage['attachments'], b: ChatMessage['attachments']): boolean {
+  if (a === b) return true;
+  const left = a ?? [];
+  const right = b ?? [];
+  if (left.length !== right.length) return false;
+  for (let i = 0; i < left.length; i += 1) {
+    if (
+      left[i].id !== right[i].id ||
+      left[i].name !== right[i].name ||
+      left[i].mimeType !== right[i].mimeType ||
+      left[i].size !== right[i].size ||
+      left[i].uri !== right[i].uri ||
+      left[i].width !== right[i].width ||
+      left[i].height !== right[i].height
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function ChatMessageBubbleInner({
   message,
   renderContent,
   isLast,
   retrying,
   onRetryMessage,
+  onAttachmentLoadError,
   style,
 }: ChatMessageBubbleProps) {
   const theme = useTheme();
@@ -65,38 +89,62 @@ function ChatMessageBubbleInner({
     metaStatus === 'success' ? theme.colors.success : metaStatus === 'error' ? theme.colors.danger : undefined;
   const showRetry = Boolean(onRetryMessage) && isLast && metaStatus === 'error' && message.author === 'human';
   const retryLabel = retrying ? 'Retrying...' : 'Retry';
+  const hasText = message.content.trim().length > 0;
+  const attachments = message.attachments ?? [];
+  const hasAttachments = attachments.length > 0;
+  const hasStatusIcon = isMergeCompleted || isSyncCompleted || isMergeApproved || isSyncStarted;
+  const shouldRenderBubble = hasText || hasStatusIcon;
   const handleRetryPress = React.useCallback(() => {
     onRetryMessage?.(message.id);
   }, [message.id, onRetryMessage]);
 
   return (
     <View style={[align, style]}>
-      <Surface
-        variant={bubbleVariant}
-        style={[
-          {
+      {hasAttachments ? (
+        <View
+          style={{
             maxWidth: '85%',
-            borderRadius: theme.radii.lg,
-            paddingHorizontal: theme.spacing.lg,
-            paddingVertical: theme.spacing.md,
-            borderWidth: 1,
-            borderColor: theme.colors.border,
-          },
-          cornerStyle,
-        ]}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {isMergeCompleted || isSyncCompleted ? (
-            <CheckCheck size={16} color={theme.colors.success} style={{ marginRight: theme.spacing.sm }} />
-          ) : null}
-          {isMergeApproved || isSyncStarted ? (
-            <GitMerge size={16} color={theme.colors.text} style={{ marginRight: theme.spacing.sm }} />
-          ) : null}
-          <View style={{ flexShrink: 1, minWidth: 0 }}>
-            {renderContent ? renderContent(message) : <MarkdownText markdown={message.content} variant="chat" bodyColor={bodyColor} />}
-          </View>
+            marginBottom: shouldRenderBubble ? theme.spacing.xs : 0,
+            alignSelf: isHuman ? 'flex-end' : 'flex-start',
+            alignItems: isHuman ? 'flex-end' : 'flex-start',
+          }}
+        >
+          <ChatMessageAttachments
+            messageId={message.id}
+            attachments={attachments}
+            align={isHuman ? 'right' : 'left'}
+            onAttachmentLoadError={onAttachmentLoadError}
+          />
         </View>
-      </Surface>
+      ) : null}
+      {shouldRenderBubble ? (
+        <Surface
+          variant={bubbleVariant}
+          style={[
+            {
+              maxWidth: '85%',
+              borderRadius: theme.radii.lg,
+              paddingHorizontal: theme.spacing.lg,
+              paddingVertical: theme.spacing.md,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+            },
+            cornerStyle,
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {isMergeCompleted || isSyncCompleted ? (
+              <CheckCheck size={16} color={theme.colors.success} style={{ marginRight: theme.spacing.sm }} />
+            ) : null}
+            {isMergeApproved || isSyncStarted ? (
+              <GitMerge size={16} color={theme.colors.text} style={{ marginRight: theme.spacing.sm }} />
+            ) : null}
+            <View style={{ flexShrink: 1, minWidth: 0 }}>
+              {renderContent ? renderContent(message) : <MarkdownText markdown={message.content} variant="chat" bodyColor={bodyColor} />}
+            </View>
+          </View>
+        </Surface>
+      ) : null}
       {showRetry ? (
         <View style={{ marginTop: theme.spacing.xs, alignSelf: align.alignSelf }}>
           <Button
@@ -130,6 +178,7 @@ function areEqual(prev: ChatMessageBubbleProps, next: ChatMessageBubbleProps): b
     prev.message.id === next.message.id &&
     prev.message.author === next.message.author &&
     prev.message.content === next.message.content &&
+    areMessageAttachmentsEqual(prev.message.attachments, next.message.attachments) &&
     prev.message.kind === next.message.kind &&
     String(prev.message.createdAt) === String(next.message.createdAt) &&
     areMessageMetaEqual(prev.message.meta, next.message.meta) &&
@@ -137,6 +186,7 @@ function areEqual(prev: ChatMessageBubbleProps, next: ChatMessageBubbleProps): b
     prev.isLast === next.isLast &&
     prev.retrying === next.retrying &&
     prev.onRetryMessage === next.onRetryMessage &&
+    prev.onAttachmentLoadError === next.onAttachmentLoadError &&
     prev.style === next.style
   );
 }

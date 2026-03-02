@@ -550,6 +550,9 @@ function ComergeStudioInner({
           chatSending={actions.sending}
           chatShowTypingIndicator={chatShowTypingIndicator}
           onSendChat={(text, attachments) => actions.sendEdit({ prompt: text, attachments })}
+          onChatAttachmentLoadError={() => {
+            thread.recoverAttachmentUrls();
+          }}
           chatQueueItems={chatQueueItems}
           onRemoveQueueItem={(id) => editQueueActions.cancel(id)}
           chatProgress={showChatProgress ? agentProgress.view : null}

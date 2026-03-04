@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 let clientSingleton: SupabaseClient | null = null;
 let injectedClient: SupabaseClient | null = null;
@@ -32,6 +33,7 @@ export function getSupabaseClient(): SupabaseClient {
 
   clientSingleton = createClient(runtimeConfig.url, runtimeConfig.anonKey, {
     auth: {
+      storage: AsyncStorage,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

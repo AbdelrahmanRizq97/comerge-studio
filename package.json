@@ -52,6 +52,7 @@
     "typescript": "^5.7.3"
   },
   "peerDependencies": {
+    "@react-native-async-storage/async-storage": "*",
     "@callstack/liquid-glass": "*",
     "@supabase/supabase-js": "*",
     "@gorhom/bottom-sheet": "*",

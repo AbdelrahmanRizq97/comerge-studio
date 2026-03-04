@@ -46,6 +46,8 @@
       "react-native-zip-archive/*": ["../bld-playground-expo/node_modules/react-native-zip-archive/*"],
       "expo-image": ["../bld-playground-expo/node_modules/expo-image"],
       "expo-image/*": ["../bld-playground-expo/node_modules/expo-image/*"],
+      "@react-native-async-storage/async-storage": ["../bld-playground-expo/node_modules/@react-native-async-storage/async-storage"],
+      "@react-native-async-storage/async-storage/*": ["../bld-playground-expo/node_modules/@react-native-async-storage/async-storage/*"],
     },
     "typeRoots": ["../bld-playground-expo/node_modules/@types"]
   },
